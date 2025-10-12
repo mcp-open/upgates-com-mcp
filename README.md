@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/mcp-open-upgates-com-mcp-badge.png)](https://mseep.ai/app/mcp-open-upgates-com-mcp)
+
 # Upgates MCP Server
 
 > **AI asistent pro automatizaci Upgates e-shopů**
