@@ -86,3 +86,12 @@ mcp-logs/
 .claude
 
 #dev-docs*
+
+# Python (port konektoru na openmcp_sdk)
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
