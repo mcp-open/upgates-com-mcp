@@ -5,6 +5,26 @@ All notable changes to Upgates MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> Záznamy do verzie 0.1.x popisujú pôvodnú **TypeScript** implementáciu.
+> Od 0.2.0 je konektor v Pythone nad `openmcp-sdk`.
+
+## [Unreleased]
+
+### Odstránené
+
+- **TypeScript strom** (`src/*.ts`, `package.json`, `tsconfig.json`) —
+  nahradený Python implementáciou v `src/connector/` (commit `a8f71aa`).
+  Dohľadateľný v git histórii.
+
+### Opravené (dokumentácia)
+
+- `README.md` a `docs/tools.md` tvrdili **34 nástrojov vrátane zapisovacích**
+  (`create_order`, `update_orders`, `delete_orders`). Tie existovali len v TS
+  verzii; Python konektor registruje **23 čítacích** nástrojov a `egress`
+  povoľuje výhradne `GET`. Read-only konektor teda inzeroval zápis.
+- `CONTRIBUTING.md` a `dev-docs/project-structure.md` navádzali na súbory,
+  ktoré už neexistujú.
+
 ## [0.1.0] - 2025-10-09
 
 ### 🎉 Initial Release

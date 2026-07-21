@@ -1,5 +1,12 @@
 # 🎉 Upgates MCP Server v0.1.0 - Initial Release
 
+> **Historický dokument.** Popisuje vydanie pôvodnej **TypeScript** verzie
+> konektora z 2025-10-09. Konektor je od 7/2026 implementovaný v Pythone nad
+> `openmcp-sdk` a TS strom bol odstránený (dohľadateľný v git histórii).
+> Ponechané ako záznam, nie ako aktuálna dokumentácia — aktuálny stav je
+> v [README.md](README.md).
+
+
 **Datum vydání:** 2025-10-09
 **Status:** Production Ready ✅
 
