@@ -24,7 +24,6 @@ zdroj identity/credentials:
 from __future__ import annotations
 
 import logging
-import os as _os
 import urllib.parse
 from datetime import date, timedelta
 from typing import Annotated, Any
@@ -35,7 +34,6 @@ from pydantic import Field
 
 from openmcp_sdk import ConnectorError, ErrorCode, current_context
 from openmcp_sdk.http import UpstreamClient
-from openmcp_sdk.logging import setup as _log_setup
 from openmcp_sdk.pii import Pseudonymizer, derive_key
 
 from connector.optimizers import optimize_list_response
@@ -43,10 +41,6 @@ from connector.pii_fields import POLICY
 from connector.validators import validate_date_range, validate_page
 
 logger = logging.getLogger(__name__)
-
-# Strukturované JSON logování (openmcp_sdk) — centrální collector ho rozbalí do
-# pole .app. Component z env OPENMCP_COMPONENT (default mcp-upgates).
-_log_setup(component=_os.getenv("OPENMCP_COMPONENT", "mcp-upgates"))
 
 mcp: FastMCP = FastMCP(
     "upgates",
@@ -73,6 +67,42 @@ _D_DATE_TO = Field(description="Filtrovat do tohoto data (YYYY-MM-DD)")
 # =============================================================================
 # Klient + společná cesta požadavku
 # =============================================================================
+def _validated_api_url(raw: object) -> str:
+    """Bind Basic credentials to the exact Upgates HTTPS origin family.
+
+    Kubernetes NetworkPolicy cannot enforce FQDNs and therefore permits public
+    port 443. Without this application check a customer-controlled ``api_url``
+    could exfiltrate the API login/key to an arbitrary host.
+    """
+
+    if not isinstance(raw, str) or raw != raw.strip() or any(
+        ord(char) < 32 or ord(char) == 127 for char in raw
+    ):
+        raise ConnectorError(ErrorCode.INVALID_INPUT, "Neplatná URL Upgates API.")
+    parsed = urllib.parse.urlsplit(raw)
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ConnectorError(ErrorCode.INVALID_INPUT, "Neplatná URL Upgates API.") from exc
+    hostname = (parsed.hostname or "").lower()
+    if (
+        parsed.scheme != "https"
+        or not hostname.endswith(".admin.upgates.com")
+        or hostname == "admin.upgates.com"
+        or port not in (None, 443)
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or parsed.path.rstrip("/") != "/api/v2"
+    ):
+        raise ConnectorError(
+            ErrorCode.INVALID_INPUT,
+            "URL musí být HTTPS adresa e-shopu *.admin.upgates.com s cestou /api/v2.",
+        )
+    return f"https://{hostname}{f':{port}' if port is not None else ''}/api/v2"
+
+
 def _client() -> UpstreamClient:
     """Upgates klient z aktuálního request kontextu (SDK identita + creds).
 
@@ -82,7 +112,7 @@ def _client() -> UpstreamClient:
     """
     ctx = current_context()
     return UpstreamClient(
-        base_url=ctx.config["api_url"],
+        base_url=_validated_api_url(ctx.config["api_url"]),
         auth=(ctx.config["api_login"], ctx.secrets["api_key"]),
     )
 

@@ -49,6 +49,59 @@ def test_client_built_from_context(monkeypatch):
     assert captured == {"base_url": _CFG["api_url"], "auth": ("u", "k")}
 
 
+@pytest.mark.parametrize(
+    "api_url",
+    [
+        "http://acme.admin.upgates.com/api/v2",
+        "https://attacker.example/api/v2",
+        "https://acme.admin.upgates.com.evil.example/api/v2",
+        "https://admin.upgates.com/api/v2",
+        "https://user:pass@acme.admin.upgates.com/api/v2",
+        "https://acme.admin.upgates.com:8443/api/v2",
+        "https://acme.admin.upgates.com/api/v2/other",
+        "https://acme.admin.upgates.com/api/v2?key=value",
+        " https://acme.admin.upgates.com/api/v2",
+    ],
+)
+def test_client_never_sends_basic_credentials_outside_exact_upgates_origin(
+    monkeypatch, api_url
+):
+    called = False
+
+    def capture(**kwargs):
+        nonlocal called
+        called = True
+        return _Fake()
+
+    monkeypatch.setattr(server, "UpstreamClient", capture)
+    with testing.with_context(
+        {"api_key": "must-not-leave"},
+        {**_CFG, "api_url": api_url},
+        sub="s1",
+    ):
+        with pytest.raises(ConnectorError) as exc:
+            server._client()
+    assert exc.value.code is ErrorCode.INVALID_INPUT
+    assert called is False
+
+
+def test_client_normalizes_allowed_upgates_url_before_attaching_basic_auth(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        server, "UpstreamClient", lambda **kw: captured.update(kw) or _Fake()
+    )
+    with testing.with_context(
+        {"api_key": "k"},
+        {**_CFG, "api_url": "https://acme.admin.upgates.com:443/api/v2/"},
+        sub="s1",
+    ):
+        server._client()
+    assert captured == {
+        "base_url": "https://acme.admin.upgates.com:443/api/v2",
+        "auth": ("u", "k"),
+    }
+
+
 def test_list_orders_optimizes_and_anonymizes(monkeypatch):
     page = {
         "current_page": 1,
