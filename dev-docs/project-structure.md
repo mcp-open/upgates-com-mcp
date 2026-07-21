@@ -1,44 +1,44 @@
-# Štruktúra projektu
+# Struktura projektu
 
-Konektor je Python balík nad `openmcp-sdk`. Balík sa volá neutrálne
-`connector` — slug žije výhradne v `connector.yaml`, nie v mene balíka.
+Konektor je Python balík nad `openmcp-sdk`. Balík se jmenuje neutrálně
+`connector` — slug žije výhradně v `connector.yaml`, ne ve jméně balíku.
 
 ```
 upgates-com-mcp/
-├── connector.yaml            manifest — jediný deklaratívny zdroj pravdy
-├── Dockerfile                build (kontext je nadradený priečinok, kvôli sdk/)
+├── connector.yaml            manifest — jediný deklarativní zdroj pravdy
+├── Dockerfile                build (kontext je nadřazená složka, kvůli sdk/)
 ├── pyproject.toml
 ├── src/connector/
 │   ├── __main__.py           `python -m connector` — ENTRYPOINT
-│   ├── server.py             23 čítacích nástrojov + test_connection
+│   ├── server.py             23 čtecích nástrojů + test_connection
 │   ├── client.py             Upgates API v2 (Basic auth, retry)
-│   ├── anonymize.py          pseudonymizácia osobných údajov
-│   ├── optimizers.py         tvarovanie odpovede pre kontextové okno modelu
-│   └── validators.py         validácia vstupov → ConnectorError(INVALID_INPUT)
+│   ├── anonymize.py          pseudonymizace osobních údajů
+│   ├── optimizers.py         tvarování odpovědi pro kontextové okno modelu
+│   └── validators.py         validace vstupů → ConnectorError(INVALID_INPUT)
 ├── tests/
-├── docs/                     používateľská dokumentácia
+├── docs/                     uživatelská dokumentace
 └── dev-docs/
-    └── upgatesapiv2.apib     API špecifikácia dodávateľa
+    └── upgatesapiv2.apib     API specifikace dodavatele
 ```
 
-## Poradie spracovania odpovede
+## Pořadí zpracování odpovědi
 
 ```
 upstream → validators → optimizers → anonymize → envelope → model
 ```
 
-**Najprv tvarovať, potom pseudonymizovať.** Opačné poradie by tokenizovalo
-polia, ktoré sa aj tak zahodia.
+**Nejprve tvarovat, potom pseudonymizovat.** Opačné pořadí by tokenizovalo
+pole, která se stejně zahodí.
 
-## Čo rieši SDK, nie tento repozitár
+## Co řeší SDK, ne tento repozitář
 
-Identita, credentials z Vaultu, tri režimy `OPENMCP_MODE`, read-only filter,
-mapovanie HTTP chýb a HTTP transport sú v `openmcp-sdk`. Konektor obsahuje len
-to, čo je špecifické pre Upgates API.
+Identita, credentials z Vaultu, tři režimy `OPENMCP_MODE`, read-only filtr,
+mapování HTTP chyb a HTTP transport jsou v `openmcp-sdk`. Konektor obsahuje jen
+to, co je specifické pro Upgates API.
 
 ## Historická poznámka
 
-Konektor pôvodne vznikol v TypeScripte (`src/*.ts`, `package.json`). Python
-implementácia pribudla commitom `a8f71aa` (7/2026) a TS strom bol následne
-odstránený — je dohľadateľný v git histórii. `RELEASE.md` popisuje vydanie
-pôvodnej TS verzie a je ponechaný ako historický záznam.
+Konektor původně vznikl v TypeScriptu (`src/*.ts`, `package.json`). Python
+implementace přibyla commitem `a8f71aa` (7/2026) a TS strom byl následně
+odstraněn — je dohledatelný v git historii. `RELEASE.md` popisuje vydání
+původní TS verze a je ponechán jako historický záznam.

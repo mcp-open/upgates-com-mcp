@@ -1,6 +1,11 @@
-# Default Values for List Operations
+# Výchozí hodnoty výpisových nástrojů
 
-Všechny listovací funkce mají nastavené **inteligentní defaultní hodnoty** pro optimální práci s AI.
+Výpisové nástroje mají výchozí hodnoty nastavené tak, aby odpověď nezaplnila
+kontextové okno modelu.
+
+> Příklady níže jsou **pseudokód volání nástroje**, ne JavaScript — konektor
+> je od 7/2026 v Pythonu. Počty položek byly opraveny: strop je
+> `MAX_ITEMS_FOR_MCP = 15` v `src/connector/optimizers.py`, ne 100.
 
 ## 📋 Přehled defaultů
 
@@ -12,15 +17,15 @@ Všechny listovací funkce mají nastavené **inteligentní defaultní hodnoty**
 - `order_dir: 'desc'` - **Nejnovější první** (od nejnovějších k nejstarším)
 
 **Výsledek:**
-- Bez parametrů vrátí 100 nejnovějších objednávek
+- Bez parametrů vrátí nejnovější objednávky (strop `MAX_ITEMS_FOR_MCP = 15`)
 - Objednávka z dneška bude první
 - Ideální pro "Jaké máme nové objednávky?"
 
 **Příklad:**
-```javascript
+```text
 // Bez parametrů - použijí se defaults
 list_orders({})
-// Vrátí: 100 nejnovějších objednávek, seřazené od nejnovější
+// Vrátí: nejnovější objednávky (max 15), seřazené od nejnovější
 
 // S vlastními parametry - přepíšou defaults
 list_orders({ page: 2, order_dir: 'asc' })
@@ -42,7 +47,7 @@ list_orders({ page: 2, order_dir: 'asc' })
 - Varianty se nezahrnují (ušetří tokeny)
 
 **Příklad:**
-```javascript
+```text
 // Bez parametrů - jen aktivní produkty
 list_products({})
 // Vrátí: 50 aktivních produktů bez variant
@@ -64,11 +69,11 @@ list_products({ variants_yn: true })
 - `blocked_yn: false` - **Neblokovaní zákazníci**
 
 **Výsledek:**
-- Bez parametrů vrátí 100 aktivních, neblokovaných zákazníků
+- Bez parametrů vrátí aktivní, neblokované zákazníky (strop 15)
 - Filtruje problémy zákazníky automaticky
 
 **Příklad:**
-```javascript
+```text
 // Bez parametrů - jen aktivní, neblokovaní
 list_customers({})
 
@@ -92,7 +97,7 @@ list_customers({ active_yn: undefined, blocked_yn: undefined })
 - Zobrazí jen relevantní nedokončené nákupy
 
 **Příklad:**
-```javascript
+```text
 // Bez parametrů - košíky za 7 dní
 list_carts({})
 // Vrátí: Košíky vytvořené od 2025-10-02
@@ -165,7 +170,7 @@ list_carts({ creation_time_from: '2025-09-01' })
 
 Defaults můžete vždy přepsat explicitními parametry:
 
-```javascript
+```text
 // Všechny objednávky (i staré)
 list_orders({ order_dir: 'asc' })
 
@@ -183,7 +188,7 @@ list_customers({ active_yn: false, blocked_yn: true })
 
 ## 📊 Dopad na tokeny
 
-S defaults (20-100 položek) místo full listu (1000+ položek):
+S defaults (max 15 položek) místo full listu (1000+ položek):
 
 - **Orders**: ~24k tokenů místo ~1.3M (98% úspora)
 - **Products**: ~4k tokenů místo ~2M (99.8% úspora)

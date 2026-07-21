@@ -11,29 +11,29 @@ UPGATES_ANONYMIZE_DATA=true
 ## Co se anonymizuje (40+ polí)
 
 ### Zákaznické údaje
-- Email: `email`, `customer_email`
-- Phone: `phone`, `phoneNumber`, `fax`
-- Names: `firstname`, `surname`, `customer_name`, `nickname`
-- Invoice names: `firstname_invoice`, `surname_invoice`
-- Postal names: `firstname_postal`, `surname_postal`
-- Company: `company`, `company_name`, `company_postal`
+- E-mail: `email`, `customer_email`
+- Telefon: `phone`, `phoneNumber`, `fax`
+- Jména: `firstname`, `surname`, `customer_name`, `nickname`
+- Fakturační jména: `firstname_invoice`, `surname_invoice`
+- Poštovní jména: `firstname_postal`, `surname_postal`
+- Společnost: `company`, `company_name`, `company_postal`
 
 ### Adresy
-- Street: `street`, `street_invoice`, `street_postal`
-- City: `city`, `city_invoice`, `city_postal`
-- State/Region: `state`, `state_invoice`, `state_postal`
-- ZIP: `zip`, `zip_invoice`, `zip_postal`, `zip_code`
+- Ulice: `street`, `street_invoice`, `street_postal`
+- Město: `city`, `city_invoice`, `city_postal`
+- Kraj/stát: `state`, `state_invoice`, `state_postal`
+- PSČ: `zip`, `zip_invoice`, `zip_postal`, `zip_code`
 
 ### Firemní identifikátory
-- Czech/Slovak IDs: `ico`, `dic`
-- International: `company_number`, `vat_number`
-- Banking: `iban`, `swift`, `bank_account`, `account_number`
+- České/slovenské identifikátory: `ico`, `dic`
+- Mezinárodní: `company_number`, `vat_number`
+- Bankovní údaje: `iban`, `swift`, `bank_account`, `account_number`
 
 ### Ostatní citlivá data
-- Notes: `customer_note`, `internal_note`, `note`
-- Personal: `degree`, `salutation`, `declension`
-- Symbols: `variable_symbol`, `specific_symbol`
-- Codes: `code`, `customer_code`
+- Poznámky: `customer_note`, `internal_note`, `note`
+- Osobní údaje: `degree`, `salutation`, `declension`
+- Symboly: `variable_symbol`, `specific_symbol`
+- Kódy: `code`, `customer_code`
 
 Plus jakékoliv pole obsahující: name, email, phone, address, street, city, zip
 
@@ -88,15 +88,15 @@ Necitlivá pole (order_number, product_id, price, status) zůstávají nezměně
 
 ## Technické detaily
 
-- **Deep anonymization**: Rekurzivně prochází vnořené objekty a pole
-- **Null preservation**: Zachovává `null`, `undefined` a prázdné řetězce
-- **Non-destructive**: Vytváří deep copy, nemění originál
-- **Pattern matching**: Zachytává pole podle jména i keywords
+- **Hloubková anonymizace**: Rekurzivně prochází vnořené objekty a pole
+- **Zachování null hodnot**: Zachovává `null`, `undefined` a prázdné řetězce
+- **Nedestruktivní**: Vytváří hlubokou kopii, nemění originál
+- **Shoda podle vzoru**: Zachytává pole podle jména i klíčových slov
 
-## Use Cases
+## Případy použití
 
-- **GDPR Compliance**: Ochrana PII v logách a debugging
-- **Development & Testing**: Práce s produkčními daty bezpečně
-- **Training & Demos**: Použití reálné struktury dat bez privacy concerns
-- **Analytics**: Analýza vzorců bez ukládání osobních dat
-- **Shared Environments**: Více vývojářů může přistupovat k datům bezpečně
+- **Shoda s GDPR**: Ochrana PII v logách a debugging
+- **Vývoj a testování**: Práce s produkčními daty bezpečně
+- **Školení a demo**: Použití reálné struktury dat bez obav o soukromí
+- **Analytika**: Analýza vzorců bez ukládání osobních dat
+- **Sdílená prostředí**: Více vývojářů může přistupovat k datům bezpečně

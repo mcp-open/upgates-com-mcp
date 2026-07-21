@@ -1,18 +1,18 @@
-# Prispievanie do projektu
+# Přispívání do projektu
 
-Ďakujeme za záujem. Konektor je Python balík nad
+Děkujeme za zájem. Konektor je Python balíček nad
 [`openmcp-sdk`](https://github.com/mcp-open/openmcp-sdk).
 
-## Nahlásenie chyby
+## Nahlášení chyby
 
-Skontroluj [issues](https://github.com/mcp-open/upgates-com-mcp/issues) a založ
-nové s popisom, krokmi na reprodukciu, očakávaným vs. skutočným správaním
-a verziou konektora. **Do logov v issue nedávaj citlivé dáta** — ani
-pseudonymizované tokeny nie sú náhrada za rozvahu.
+Zkontroluj [issues](https://github.com/mcp-open/upgates-com-mcp/issues) a založ
+nové s popisem, kroky k reprodukci, očekávaným vs. skutečným chováním
+a verzí konektoru. **Do logů v issue nedávej citlivá data** — ani
+pseudonymizované tokeny nejsou náhrada za rozvahu.
 
-Bezpečnostné problémy nepatria do verejných issue: `security@openmcp.cz`.
+Bezpečnostní problémy nepatří do veřejných issues: `security@openmcp.cz`.
 
-## Vývojové prostredie
+## Vývojové prostředí
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
@@ -20,49 +20,49 @@ pip install -e ../openmcp-sdk -e '.[test]'
 export OPENMCP_PII_SALT="$(openssl rand -hex 32)"
 ```
 
-## Pred odoslaním zmeny
+## Před odesláním změny
 
 ```bash
 python -m pytest tests -q
 openmcp-sdk validate connector.yaml
 ```
 
-Obe musia prejsť. `validate` overuje aj invarianty platformy (egress,
-`display.tools`, slug), takže „prešlo" znamená „platforma to prijme".
+Oba musí projít. `validate` ověřuje i invarianty platformy (egress,
+`display.tools`, slug), takže „prošlo" znamená „platforma to přijme".
 
-## Pridanie nového nástroja
+## Přidání nového nástroje
 
-1. **Funkcia v `src/connector/server.py`.** Registruje sa cez
+1. **Funkce v `src/connector/server.py`.** Registruje se přes
    `mcp.tool(fn, annotations=ToolAnnotations(readOnlyHint=True))`.
-   Anotácia je **bezpečnostná hranica**: pri zapnutom read-only režime SDK
-   fail-closed odregistruje všetko, čo `readOnlyHint=True` nemá — nástroj bez
-   nej v produkcii ticho zmizne.
-2. **Cesta v `src/connector/client.py`.** Nie priamo v nástroji.
-3. **Záznam v `display.tools`** v `connector.yaml`. Bez neho platforma nástroj
-   nezaklasifikuje a bude fail-closed zamietnutý. Zhodu so zaregistrovanými
-   nástrojmi stráži test.
-4. **Test v `tests/`.** Upstream sa mockuje, nevolá sa naozaj.
-5. **Riadok v `docs/tools.md`.**
+   Anotace je **bezpečnostní hranice**: při zapnutém read-only režimu SDK
+   fail-closed odregistruje vše, co `readOnlyHint=True` nemá — nástroj bez
+   ní v produkci tiše zmizí.
+2. **Cesta v `src/connector/client.py`.** Ne přímo v nástroji.
+3. **Záznam v `display.tools`** v `connector.yaml`. Bez něj platforma nástroj
+   nezaklasifikuje a bude fail-closed zamítnut. Shodu se zaregistrovanými
+   nástroji hlídá test.
+4. **Test v `tests/`.** Upstream se mockuje, nevolá se doopravdy.
+5. **Řádek v `docs/tools.md`.**
 
-## Osobné údaje
+## Osobní údaje
 
-Nové pole s osobnými údajmi patrí do tabuliek v
-`src/connector/anonymize.py` — nikdy sa nerieši ad hoc v kóde nástroja.
+Nové pole s osobními údaji patří do tabulek v
+`src/connector/anonymize.py` — nikdy se neřeší ad hoc v kódu nástroje.
 
-Pseudonymizačné tokeny sú **externe viditeľný kontrakt**: keď sa zmení ich
-odvodenie, používateľ uvidí iné ID pre tie isté dáta. Takú zmenu treba
-zdôvodniť v `CHANGELOG.md`.
+Pseudonymizační tokeny jsou **externě viditelný kontrakt**: když se změní jejich
+odvození, uživatel uvidí jiné ID pro stejná data. Takovou změnu je třeba
+zdůvodnit v `CHANGELOG.md`.
 
-## Konvencie
+## Konvence
 
-- Východzia vetva je `main`.
-- Konektor je **iba na čítanie**. Zapisovacie nástroje by znamenali zmenu
-  `capabilities.supports_write`, `egress.methods` a potvrdzovaciu vrstvu —
-  to je samostatné rozhodnutie, nie bežný PR.
-- Do repozitára nepatria secrets, `.env` ani produkčné logy.
+- Výchozí větev je `main`.
+- Konektor je **pouze pro čtení**. Zapisovací nástroje by znamenaly změnu
+  `capabilities.supports_write`, `egress.methods` a potvrzovací vrstvu —
+  to je samostatné rozhodnutí, ne běžný PR.
+- Do repozitáře nepatří secrets, `.env` ani produkční logy.
 
 ## Historická poznámka
 
-Konektor pôvodne vznikol v TypeScripte. Od 7/2026 je v Pythone; TS strom bol
-odstránený a je dohľadateľný v git histórii. Staršie časti `CHANGELOG.md`
-a `RELEASE.md` popisujú TS verziu.
+Konektor původně vznikl v TypeScriptu. Od 7/2026 je v Pythonu; TS strom byl
+odstraněn a je dohledatelný v git historii. Starší části `CHANGELOG.md`
+a `RELEASE.md` popisují TS verzi.

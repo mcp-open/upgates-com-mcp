@@ -265,8 +265,8 @@ def optimize_list_response(
         "number_of_items": data.get("number_of_items"),
         "mcp_limited_to": max_items,
         "mcp_note": (
-            f"Showing first {max_items} of {data.get('current_page_items')} items on this "
-            "page. Use page parameter to see more."
+            f"Zobrazeno prvních {max_items} z {data.get('current_page_items')} položek na "
+            "této stránce. Pro zobrazení dalších použij parametr page."
         ),
         list_key: optimized_items,
         "current_page_items": len(optimized_items),

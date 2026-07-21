@@ -1,70 +1,49 @@
-# Readonly režim
+# Read-only režim
 
-Server podporuje readonly režim pro bezpečné testování bez rizika změny dat.
+Konektor je **výhradně čtecí**. Nemá jediný zapisovací nástroj a
+`egress.methods` v `connector.yaml` povoluje jen `GET`, takže zápis
+neprojde ani přes síťovou politiku.
 
-## Zapnutí readonly režimu
+> Předchozí verze tohoto dokumentu popisovala proměnnou `UPGATES_READONLY`
+> a blokování nástrojů jako `create_order`. Obojí pocházelo z původní
+> TypeScript implementace: ta proměnná **nic nedělá** a ty nástroje
+> v Python konektoru neexistují.
 
-```bash
-UPGATES_READONLY=true
-```
+## Jak je to vynuceno
 
-## Jak funguje
+Ne „aplikační vrstvou" v kódu konektoru, ale **SDK filtrem při startu**.
+Každý nástroj má anotaci `readOnlyHint`; když je read-only režim zapnutý,
+`run_connector` fail-closed odregistruje vše, co `readOnlyHint=True` nemá.
+Nástroj se tedy k modelu vůbec nedostane — nejde o kontrolu při volání.
 
-### Povoleno ✅
-Všechny GET/list operace:
-- `list_orders`, `list_products`, `list_customers`
-- `list_invoices`, `list_categories`, `list_carts`
-- `list_vouchers`, `list_payments`, `list_shipments`
-- `get_languages`, `get_shop_config`, `get_api_status`
+Tři nezávislé vrstvy:
 
-### Blokováno ❌
-Všechny write operace:
-- `create_order`, `update_orders`, `delete_orders`
-- `create_order_status`
-- `create_products`, `update_products`, `delete_products`
-- `create_customers`
-- `create_categories`
-- `create_vouchers`
-- `create_webhook`
+| Vrstva | Co brání zápisu |
+|---|---|
+| Konektor | žádný zapisovací nástroj není implementován |
+| SDK | read-only filtr odregistruje neanotované nástroje při startu |
+| Síť | `egress.methods: [GET]` → NetworkPolicy jiné metody zablokuje |
 
-## Chybová hláška
+Navíc se doporučuje dát API uživateli v Upgates adminu jen čtecí
+oprávnění — konektor se na to nespoléhá, ale je to levná čtvrtá vrstva.
 
-```
-ReadonlyError [READONLY_MODE] Operation 'create_order' is not allowed in readonly mode.
-Set UPGATES_READONLY=false to enable write operations. (operation: create_order)
-```
+## Přepínač
 
-## Kdy použít
-
-### ✅ Zapněte readonly když:
-- 🧪 Testujete MCP server poprvé
-- 📊 Potřebujete pouze číst data (monitoring, analytics)
-- 👨‍🎓 Učíte se pracovat s API
-- 🔍 Explorujete strukturu dat
-- 👥 Sdílíte přístup s více lidmi
-
-### ⚠️ Vypněte readonly když:
-- Potřebujete aktualizovat stavy objednávek
-- Synchronizujete produkty ze skladu
-- Konfigurujete webhooky
-- Vytváříte objednávky z externího systému
-
-## Bezpečnostní vrstva
-
-Readonly mode poskytuje **aplikační vrstvu ochrany** nad API permissions:
-
-1. **Aplikační vrstva**: `UPGATES_READONLY=true` blokuje write operace v kódu
-2. **API vrstva**: API user permissions (nastavené v Upgates admin)
-
-**Dvojitá ochrana** = maximální bezpečnost! 🔒
-
-## Kombinace s anonymizací
-
-Doporučená konfigurace pro produkci:
+`read_only` **není** v `operator_config`, takže SDK použije fallback na
+proměnnou prostředí:
 
 ```bash
-UPGATES_READONLY=true          # Ochrana proti změnám
-UPGATES_ANONYMIZE_DATA=true    # Ochrana zákaznických dat
+UPGATES_READ_ONLY=true    # pozor: READ_ONLY s podtržítkem
 ```
 
-**Nejbezpečnější nastavení pro testování a monitoring!**
+Výchozí hodnota je `true` (`capabilities.default_read_only`). Vypnutí
+nemá u tohoto konektoru efekt — žádný zapisovací nástroj neexistuje, takže
+filtr nemá co pustit navíc.
+
+## Doporučená konfigurace
+
+```bash
+UPGATES_READ_ONLY=true         # ochrana proti změnám
+UPGATES_ANONYMIZE_DATA=true    # ochrana zákaznických dat (GDPR)
+OPENMCP_PII_SALT=…             # povinné, jinak konektor nenastartuje
+```

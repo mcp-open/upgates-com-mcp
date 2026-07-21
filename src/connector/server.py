@@ -43,8 +43,8 @@ from connector.validators import validate_date_range, validate_page
 
 logger = logging.getLogger(__name__)
 
-# Štruktúrované JSON logovanie (openmcp_sdk) — centrálny collector ho rozbalí do
-# poľa .app. Component z env OPENMCP_COMPONENT (default mcp-upgates).
+# Strukturované JSON logování (openmcp_sdk) — centrální collector ho rozbalí do
+# pole .app. Component z env OPENMCP_COMPONENT (default mcp-upgates).
 _log_setup(component=_os.getenv("OPENMCP_COMPONENT", "mcp-upgates"))
 
 mcp: FastMCP = FastMCP(
@@ -63,10 +63,10 @@ mcp: FastMCP = FastMCP(
 )
 
 # --- Sdílené popisy parametrů (Annotated[…, Field]) — LLM je vidí ve schématu. --
-_D_PAGE = Field(description="Page number (starting from 1)", ge=1)
-_D_LANGUAGE = Field(description="Filter by language (ISO 639-1)")
-_D_DATE_FROM = Field(description="Filter from this date (YYYY-MM-DD)")
-_D_DATE_TO = Field(description="Filter to this date (YYYY-MM-DD)")
+_D_PAGE = Field(description="Číslo stránky (od 1)", ge=1)
+_D_LANGUAGE = Field(description="Filtrovat podle jazyka (ISO 639-1)")
+_D_DATE_FROM = Field(description="Filtrovat od tohoto data (YYYY-MM-DD)")
+_D_DATE_TO = Field(description="Filtrovat do tohoto data (YYYY-MM-DD)")
 
 
 # =============================================================================
@@ -150,24 +150,24 @@ def _query(**kwargs: Any) -> dict[str, Any]:
 # Objednávky (Orders)
 # =============================================================================
 def list_orders(
-    order_number: Annotated[str | None, Field(description="Specific order number")] = None,
+    order_number: Annotated[str | None, Field(description="Konkrétní číslo objednávky")] = None,
     creation_time_from: Annotated[str | None, _D_DATE_FROM] = None,
     creation_time_to: Annotated[str | None, _D_DATE_TO] = None,
-    last_update_time_from: Annotated[str | None, Field(description="Filter orders updated from this date (YYYY-MM-DD)")] = None,
-    paid_yn: Annotated[bool | None, Field(description="Filter by paid status")] = None,
-    status: Annotated[str | None, Field(description="Filter by order status name")] = None,
-    status_id: Annotated[int | None, Field(description="Filter by order status ID")] = None,
-    email: Annotated[str | None, Field(description="Filter by customer email")] = None,
-    phone: Annotated[str | None, Field(description="Filter by customer phone (MSISDN format)")] = None,
-    external_order_number: Annotated[str | None, Field(description="Filter by external order number")] = None,
+    last_update_time_from: Annotated[str | None, Field(description="Filtrovat objednávky aktualizované od tohoto data (YYYY-MM-DD)")] = None,
+    paid_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu zaplacení")] = None,
+    status: Annotated[str | None, Field(description="Filtrovat podle názvu stavu objednávky")] = None,
+    status_id: Annotated[int | None, Field(description="Filtrovat podle ID stavu objednávky")] = None,
+    email: Annotated[str | None, Field(description="Filtrovat podle e-mailu zákazníka")] = None,
+    phone: Annotated[str | None, Field(description="Filtrovat podle telefonu zákazníka (formát MSISDN)")] = None,
+    external_order_number: Annotated[str | None, Field(description="Filtrovat podle externího čísla objednávky")] = None,
     language: Annotated[str | None, _D_LANGUAGE] = None,
     page: Annotated[int, _D_PAGE] = 1,
-    order_by: Annotated[str, Field(description="Order by field: creation_time | last_update_time")] = "creation_time",
-    order_dir: Annotated[str, Field(description="Sort direction: asc | desc")] = "desc",
+    order_by: Annotated[str, Field(description="Řadit podle pole: creation_time | last_update_time")] = "creation_time",
+    order_dir: Annotated[str, Field(description="Směr řazení: asc | desc")] = "desc",
 ) -> Any:
-    """List orders with filtering and pagination (max 15 items per page).
+    """Seznam objednávek s filtrováním a stránkováním (max 15 položek na stránku).
 
-    Customer data is pseudonymized before it leaves the connector.
+    Data zákazníka jsou před opuštěním konektoru pseudonymizována.
     """
     validate_page(page)
     validate_date_range(creation_time_from, creation_time_to)
@@ -183,9 +183,9 @@ def list_orders(
 
 
 def get_order_history(
-    order_number: Annotated[str, Field(description="Order number")],
+    order_number: Annotated[str, Field(description="Číslo objednávky")],
 ) -> Any:
-    """Get history of a specific order. Customer data is pseudonymized."""
+    """Historie konkrétní objednávky. Data zákazníka jsou pseudonymizována."""
     path = f"/orders/{_path_segment(order_number, 'order_number')}/history"
     return _get(path, anonymize=True)
 
@@ -194,10 +194,10 @@ def get_order_history(
 # Stavy objednávek (Order statuses)
 # =============================================================================
 def list_order_statuses(
-    id: Annotated[int | None, Field(description="Specific status ID")] = None,
-    type: Annotated[str | None, Field(description="Status type: Received | Canceled | Sent | PaymentSuccessful | PaymentFailed | Custom")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID stavu")] = None,
+    type: Annotated[str | None, Field(description="Typ stavu: Received | Canceled | Sent | PaymentSuccessful | PaymentFailed | Custom")] = None,
 ) -> Any:
-    """List all order statuses."""
+    """Seznam všech stavů objednávek."""
     endpoint = f"/order-statuses/{_path_segment(id, 'id')}" if id else "/order-statuses"
     return _get(endpoint, _query(id=id, type=type))
 
@@ -206,14 +206,14 @@ def list_order_statuses(
 # Faktury (Invoices)
 # =============================================================================
 def list_invoices(
-    invoice_number: Annotated[str | None, Field(description="Specific invoice number")] = None,
+    invoice_number: Annotated[str | None, Field(description="Konkrétní číslo faktury")] = None,
     creation_time_from: Annotated[str | None, _D_DATE_FROM] = None,
     creation_time_to: Annotated[str | None, _D_DATE_TO] = None,
-    paid_yn: Annotated[bool | None, Field(description="Filter by paid status")] = None,
-    type: Annotated[str | None, Field(description="Invoice type: invoice | creditNote | receipt")] = None,
+    paid_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu zaplacení")] = None,
+    type: Annotated[str | None, Field(description="Typ faktury: invoice | creditNote | receipt")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List invoices with filtering and pagination. Customer data is pseudonymized."""
+    """Seznam faktur s filtrováním a stránkováním. Data zákazníka jsou pseudonymizována."""
     validate_page(page)
     validate_date_range(creation_time_from, creation_time_to)
     endpoint = f"/invoices/{_path_segment(invoice_number, 'invoice_number')}" if invoice_number else "/invoices"
@@ -228,19 +228,19 @@ def list_invoices(
 # Produkty (Products)
 # =============================================================================
 def list_products(
-    code: Annotated[str | None, Field(description="Product code")] = None,
-    product_id: Annotated[int | None, Field(description="Product ID")] = None,
-    last_update_time_from: Annotated[str | None, Field(description="Filter products updated from this date (YYYY-MM-DD)")] = None,
-    active_yn: Annotated[bool | None, Field(description="Filter by active status (default: true)")] = None,
-    archived_yn: Annotated[bool | None, Field(description="Filter by archived status")] = None,
-    can_add_to_basket_yn: Annotated[bool | None, Field(description="Filter by can add to basket")] = None,
-    in_stock_yn: Annotated[bool | None, Field(description="Filter by in stock status")] = None,
+    code: Annotated[str | None, Field(description="Kód produktu")] = None,
+    product_id: Annotated[int | None, Field(description="ID produktu")] = None,
+    last_update_time_from: Annotated[str | None, Field(description="Filtrovat produkty aktualizované od tohoto data (YYYY-MM-DD)")] = None,
+    active_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu aktivní (výchozí: true)")] = None,
+    archived_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu archivováno")] = None,
+    can_add_to_basket_yn: Annotated[bool | None, Field(description="Filtrovat podle možnosti vložit do košíku")] = None,
+    in_stock_yn: Annotated[bool | None, Field(description="Filtrovat podle skladové dostupnosti")] = None,
     language: Annotated[str | None, _D_LANGUAGE] = None,
-    pricelist: Annotated[str | None, Field(description="Filter by pricelist name")] = None,
-    variants_yn: Annotated[bool | None, Field(description="Include variants (default: false)")] = None,
+    pricelist: Annotated[str | None, Field(description="Filtrovat podle názvu ceníku")] = None,
+    variants_yn: Annotated[bool | None, Field(description="Zahrnout varianty (výchozí: false)")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List products with filtering and pagination (max 15 items per page)."""
+    """Seznam produktů s filtrováním a stránkováním (max 15 položek na stránku)."""
     validate_page(page)
     endpoint = f"/products/{_path_segment(code, 'code')}" if code else "/products"
     params = _query(
@@ -255,14 +255,14 @@ def list_products(
 
 
 def list_products_simple(
-    code: Annotated[str | None, Field(description="Product code")] = None,
-    product_id: Annotated[int | None, Field(description="Product ID")] = None,
-    last_update_time_from: Annotated[str | None, Field(description="Filter products updated from this date (YYYY-MM-DD)")] = None,
-    active_yn: Annotated[bool | None, Field(description="Filter by active status")] = None,
-    in_stock_yn: Annotated[bool | None, Field(description="Filter by in stock status")] = None,
+    code: Annotated[str | None, Field(description="Kód produktu")] = None,
+    product_id: Annotated[int | None, Field(description="ID produktu")] = None,
+    last_update_time_from: Annotated[str | None, Field(description="Filtrovat produkty aktualizované od tohoto data (YYYY-MM-DD)")] = None,
+    active_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu aktivní")] = None,
+    in_stock_yn: Annotated[bool | None, Field(description="Filtrovat podle skladové dostupnosti")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List products in simplified format (max 50 items per page)."""
+    """Seznam produktů ve zjednodušeném formátu (max 50 položek na stránku)."""
     validate_page(page)
     endpoint = f"/products/{_path_segment(code, 'code')}/simple" if code else "/products/simple"
     params = _query(
@@ -276,18 +276,18 @@ def list_products_simple(
 # Zákazníci (Customers)
 # =============================================================================
 def list_customers(
-    customer_id: Annotated[int | None, Field(description="Specific customer ID")] = None,
-    code: Annotated[str | None, Field(description="Customer code")] = None,
-    email: Annotated[str | None, Field(description="Customer email")] = None,
-    phone: Annotated[str | None, Field(description="Customer phone")] = None,
-    active_yn: Annotated[bool | None, Field(description="Filter by active status (default: true)")] = None,
-    blocked_yn: Annotated[bool | None, Field(description="Filter by blocked status (default: false)")] = None,
+    customer_id: Annotated[int | None, Field(description="Konkrétní ID zákazníka")] = None,
+    code: Annotated[str | None, Field(description="Kód zákazníka")] = None,
+    email: Annotated[str | None, Field(description="E-mail zákazníka")] = None,
+    phone: Annotated[str | None, Field(description="Telefon zákazníka")] = None,
+    active_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu aktivní (výchozí: true)")] = None,
+    blocked_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu blokován (výchozí: false)")] = None,
     language: Annotated[str | None, _D_LANGUAGE] = None,
-    pricelist: Annotated[str | None, Field(description="Filter by pricelist")] = None,
-    last_update_time_from: Annotated[str | None, Field(description="Filter customers updated from this date (YYYY-MM-DD)")] = None,
+    pricelist: Annotated[str | None, Field(description="Filtrovat podle ceníku")] = None,
+    last_update_time_from: Annotated[str | None, Field(description="Filtrovat zákazníky aktualizované od tohoto data (YYYY-MM-DD)")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List customers with filtering and pagination. Personal data is pseudonymized."""
+    """Seznam zákazníků s filtrováním a stránkováním. Osobní data jsou pseudonymizována."""
     validate_page(page)
     params = _query(
         customer_id=customer_id, code=code, email=email, phone=phone,
@@ -303,15 +303,15 @@ def list_customers(
 # Kategorie (Categories)
 # =============================================================================
 def list_categories(
-    code: Annotated[str | None, Field(description="Category code")] = None,
-    category_id: Annotated[int | None, Field(description="Category ID")] = None,
-    parent_id: Annotated[int | None, Field(description="Filter by parent category ID")] = None,
-    active_yn: Annotated[bool | None, Field(description="Filter by active status (default: true)")] = None,
+    code: Annotated[str | None, Field(description="Kód kategorie")] = None,
+    category_id: Annotated[int | None, Field(description="ID kategorie")] = None,
+    parent_id: Annotated[int | None, Field(description="Filtrovat podle ID nadřazené kategorie")] = None,
+    active_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu aktivní (výchozí: true)")] = None,
     language: Annotated[str | None, _D_LANGUAGE] = None,
-    last_update_time_from: Annotated[str | None, Field(description="Filter categories updated from this date (YYYY-MM-DD)")] = None,
+    last_update_time_from: Annotated[str | None, Field(description="Filtrovat kategorie aktualizované od tohoto data (YYYY-MM-DD)")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List categories with filtering and pagination (max 15 items per page)."""
+    """Seznam kategorií s filtrováním a stránkováním (max 15 položek na stránku)."""
     validate_page(page)
     params = _query(
         code=code, category_id=category_id, parent_id=parent_id,
@@ -325,42 +325,42 @@ def list_categories(
 # Long-tail číselníky a katalogové zdroje
 # =============================================================================
 def list_labels(
-    id: Annotated[int | None, Field(description="Specific label ID")] = None,
-    type: Annotated[str | None, Field(description="Label type: action | new | sale | custom")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID štítku")] = None,
+    type: Annotated[str | None, Field(description="Typ štítku: action | new | sale | custom")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List product labels (max 50 items per page)."""
+    """Seznam štítků produktů (max 50 položek na stránku)."""
     validate_page(page)
     endpoint = f"/labels/{_path_segment(id, 'id')}" if id else "/labels"
     return _get(endpoint, _query(id=id, type=type, page=page))
 
 
 def list_availabilities(
-    id: Annotated[int | None, Field(description="Specific availability ID")] = None,
-    type: Annotated[str | None, Field(description="Availability type: OnRequest | NotAvailable | InStock | Custom")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID dostupnosti")] = None,
+    type: Annotated[str | None, Field(description="Typ dostupnosti: OnRequest | NotAvailable | InStock | Custom")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List product availabilities (max 50 items per page)."""
+    """Seznam dostupností produktů (max 50 položek na stránku)."""
     validate_page(page)
     endpoint = f"/availabilities/{_path_segment(id, 'id')}" if id else "/availabilities"
     return _get(endpoint, _query(id=id, type=type, page=page))
 
 
 def list_manufacturers(
-    id: Annotated[int | None, Field(description="Specific manufacturer ID")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID výrobce")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List manufacturers (max 50 items per page)."""
+    """Seznam výrobců (max 50 položek na stránku)."""
     validate_page(page)
     endpoint = f"/manufacturers/{_path_segment(id, 'id')}" if id else "/manufacturers"
     return _get(endpoint, _query(id=id, page=page))
 
 
 def list_parameters(
-    id: Annotated[int | None, Field(description="Specific parameter ID")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID parametru")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List product parameters."""
+    """Seznam parametrů produktů."""
     validate_page(page)
     endpoint = f"/parameters/{_path_segment(id, 'id')}" if id else "/parameters"
     return _get(endpoint, _query(id=id, page=page))
@@ -370,16 +370,16 @@ def list_parameters(
 # Košíky (Carts)
 # =============================================================================
 def list_carts(
-    id: Annotated[int | None, Field(description="Specific cart ID")] = None,
-    creation_time_from: Annotated[str | None, Field(description="Filter carts created from this date (YYYY-MM-DD); default: last 7 days")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID košíku")] = None,
+    creation_time_from: Annotated[str | None, Field(description="Filtrovat košíky vytvořené od tohoto data (YYYY-MM-DD); výchozí: posledních 7 dní")] = None,
     language: Annotated[str | None, _D_LANGUAGE] = None,
-    filled_delivery_info_yn: Annotated[bool | None, Field(description="Filter carts with filled delivery info")] = None,
-    customer_logged_in_yn: Annotated[bool | None, Field(description="Filter carts with logged in customers")] = None,
+    filled_delivery_info_yn: Annotated[bool | None, Field(description="Filtrovat košíky s vyplněnými doručovacími údaji")] = None,
+    customer_logged_in_yn: Annotated[bool | None, Field(description="Filtrovat košíky s přihlášenými zákazníky")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List shopping carts (max 15 items per page). Customer data is pseudonymized.
+    """Seznam nákupních košíků (max 15 položek na stránku). Data zákazníka jsou pseudonymizována.
 
-    Defaults to carts from the last 7 days when no date filter or id is given.
+    Bez filtru data nebo id se výchozí použijí košíky za posledních 7 dní.
     """
     validate_page(page)
     endpoint = f"/carts/{_path_segment(id, 'id')}" if id else "/carts"
@@ -398,12 +398,12 @@ def list_carts(
 # Slevové kupóny (Vouchers)
 # =============================================================================
 def list_vouchers(
-    voucher_code: Annotated[str | None, Field(description="Specific voucher code")] = None,
-    active_yn: Annotated[bool | None, Field(description="Filter by active status (default: true)")] = None,
-    global_yn: Annotated[bool | None, Field(description="Filter by reusable status")] = None,
+    voucher_code: Annotated[str | None, Field(description="Konkrétní kód kupónu")] = None,
+    active_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu aktivní (výchozí: true)")] = None,
+    global_yn: Annotated[bool | None, Field(description="Filtrovat podle stavu opakovaně použitelný")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List discount vouchers (max 100 items per page)."""
+    """Seznam slevových kupónů (max 100 položek na stránku)."""
     validate_page(page)
     endpoint = f"/vouchers/{_path_segment(voucher_code, 'voucher_code')}" if voucher_code else "/vouchers"
     params = _query(
@@ -418,24 +418,24 @@ def list_vouchers(
 # Doprava a platby (Shipments, Payments)
 # =============================================================================
 def list_shipments(
-    id: Annotated[int | None, Field(description="Specific shipment ID")] = None,
-    code: Annotated[str | None, Field(description="Shipment code")] = None,
-    type: Annotated[str | None, Field(description="Shipment type: custom | ceskaPosta | slovenskaPosta | zasilkovna | dpd | ppl | gls")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID dopravy")] = None,
+    code: Annotated[str | None, Field(description="Kód dopravy")] = None,
+    type: Annotated[str | None, Field(description="Typ dopravy: custom | ceskaPosta | slovenskaPosta | zasilkovna | dpd | ppl | gls")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List shipping methods (multi-language descriptions are trimmed)."""
+    """Seznam způsobů dopravy (vícejazyčné popisy jsou zkráceny)."""
     validate_page(page)
     endpoint = f"/shipments/{_path_segment(id, 'id')}" if id else "/shipments"
     return _get(endpoint, _query(id=id, code=code, type=type, page=page), optimize="shipments")
 
 
 def list_payments(
-    id: Annotated[int | None, Field(description="Specific payment ID")] = None,
-    code: Annotated[str | None, Field(description="Payment code")] = None,
-    type: Annotated[str | None, Field(description="Payment type: cash | cashOnDelivery | command | paypal | gopay | stripe | custom")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID platby")] = None,
+    code: Annotated[str | None, Field(description="Kód platby")] = None,
+    type: Annotated[str | None, Field(description="Typ platby: cash | cashOnDelivery | command | paypal | gopay | stripe | custom")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """List payment methods (multi-language descriptions are trimmed)."""
+    """Seznam platebních metod (vícejazyčné popisy jsou zkráceny)."""
     validate_page(page)
     endpoint = f"/payments/{_path_segment(id, 'id')}" if id else "/payments"
     return _get(endpoint, _query(id=id, code=code, type=type, page=page), optimize="payments")
@@ -445,15 +445,15 @@ def list_payments(
 # Webhooky (Webhooks)
 # =============================================================================
 def list_webhooks(
-    id: Annotated[int | None, Field(description="Specific webhook ID")] = None,
+    id: Annotated[int | None, Field(description="Konkrétní ID webhooku")] = None,
 ) -> Any:
-    """List configured webhooks."""
+    """Seznam nakonfigurovaných webhooků."""
     endpoint = f"/webhooks/{_path_segment(id, 'id')}" if id else "/webhooks"
     return _get(endpoint)
 
 
 def list_webhook_events() -> Any:
-    """List available webhook events."""
+    """Seznam dostupných událostí webhooku."""
     return _get("/webhooks/events")
 
 
@@ -461,27 +461,27 @@ def list_webhook_events() -> Any:
 # Konfigurace e-shopu (Config, Languages, Owner, Status, Pricelists)
 # =============================================================================
 def get_languages() -> Any:
-    """Get e-shop languages configuration."""
+    """Získej konfiguraci jazyků e-shopu."""
     return _get("/languages")
 
 
 def get_shop_config() -> Any:
-    """Get e-shop configuration and settings."""
+    """Získej konfiguraci a nastavení e-shopu."""
     return _get("/config")
 
 
 def get_shop_owner() -> Any:
-    """Get e-shop owner billing information. Business data is pseudonymized."""
+    """Získej fakturační údaje provozovatele e-shopu. Firemní data jsou pseudonymizována."""
     return _get("/owner", anonymize=True)
 
 
 def get_api_status() -> Any:
-    """Get API status and list of allowed endpoints for the current user."""
+    """Získej stav API a seznam povolených endpointů pro aktuálního uživatele."""
     return _get("/status")
 
 
 def list_pricelists() -> Any:
-    """List pricelists."""
+    """Seznam ceníků."""
     return _get("/pricelists")
 
 

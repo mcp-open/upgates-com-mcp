@@ -1,16 +1,16 @@
 # upgates-com-mcp
 
-MCP konektor pre **Upgates** e-shop API v2. Čítací prístup k objednávkam,
-faktúram, produktom, zákazníkom a konfigurácii e-shopu s pseudonymizáciou
-osobných údajov.
+MCP konektor pro **Upgates** e-shop API v2. Čtecí přístup k objednávkám,
+fakturám, produktům, zákazníkům a konfiguraci e-shopu s pseudonymizací
+osobních údajů.
 
-Súčasť platformy [OpenMCP.cz](https://openmcp.cz).
+Součást platformy [OpenMCP.cz](https://openmcp.cz).
 
-> **Poznámka k histórii:** konektor pôvodne vznikol v TypeScripte. Od
-> `a8f71aa` (7/2026) je implementovaný v Pythone nad `openmcp-sdk`; TS strom
-> bol odstránený a je dohľadateľný v git histórii.
+> **Poznámka k historii:** konektor původně vznikl v TypeScriptu. Od
+> `a8f71aa` (7/2026) je implementován v Pythonu nad `openmcp-sdk`; TS strom
+> byl odstraněn a je dohledatelný v git historii.
 
-## Rýchly štart
+## Rychlý start
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
@@ -18,25 +18,25 @@ pip install -e ../openmcp-sdk -e .
 export OPENMCP_MODE=local-stdio
 export UPGATES_API_URL="https://vas-eshop.admin.upgates.com/api/v2"
 export UPGATES_API_LOGIN="api-login"
-export UPGATES_API_KEY="api-kluc"
+export UPGATES_API_KEY="api-klic"
 export OPENMCP_PII_SALT="$(openssl rand -hex 32)"
 python -m connector
 ```
 
-API prístup sa zakladá v **Upgates Admin → Doplnky → API**.
+API přístup se zakládá v **Upgates Admin → Doplňky → API**.
 
-`OPENMCP_PII_SALT` je povinný — bez neho konektor zámerne nenaštartuje. Tichý
-fallback na náhodný salt by zrušil stabilitu pseudonymizačných tokenov
-a prejavilo by sa to až po reštarte.
+`OPENMCP_PII_SALT` je povinný — bez něj konektor záměrně nenastartuje. Tichý
+fallback na náhodný salt by zrušil stabilitu pseudonymizačních tokenů
+a projevilo by se to až po restartu.
 
 ## Nástroje (23)
 
-Všetky sú **iba na čítanie**; konektor nezapisuje ani nemaže.
+Všechny jsou **pouze ke čtení**; konektor nezapisuje ani nemaže.
 
-| Oblasť | Nástroje |
+| Oblast | Nástroje |
 |---|---|
 | Objednávky | `list_orders`, `get_order_history`, `list_order_statuses` |
-| Faktúry | `list_invoices` |
+| Faktury | `list_invoices` |
 | Produkty | `list_products`, `list_products_simple`, `list_categories`, `list_labels`, `list_availabilities`, `list_manufacturers`, `list_parameters`, `list_pricelists` |
 | Zákazníci | `list_customers`, `list_carts` |
 | Doprava a platby | `list_shipments`, `list_payments`, `list_vouchers` |
@@ -44,31 +44,31 @@ Všetky sú **iba na čítanie**; konektor nezapisuje ani nemaže.
 | Webhooky | `list_webhooks`, `list_webhook_events` |
 | Diagnostika | `get_api_status` |
 
-Zoznam musí sedieť s `display.tools` v `connector.yaml` — z neho platforma
-klasifikuje oprávnenia nástrojov.
+Seznam musí odpovídat `display.tools` v `connector.yaml` — z něj platforma
+klasifikuje oprávnění nástrojů.
 
-## Osobné údaje
+## Osobní údaje
 
-Údaje zákazníkov (e-maily, telefóny, mená, adresy, IČO/DIČ, bankové spojenie)
-sa pred odoslaním do modelu nahradia stabilnými tokenmi typu
-`<EMAIL_3f9c1a2b4d5e>`. Token je jednosmerný HMAC — nedá sa rozšifrovať späť
-a nikde nevzniká re-identifikačná mapa.
+Údaje zákazníků (e-maily, telefony, jména, adresy, IČO/DIČ, bankovní spojení)
+se před odesláním do modelu nahradí stabilními tokeny typu
+`<EMAIL_3f9c1a2b4d5e>`. Token je jednosměrný HMAC — nedá se rozšifrovat zpět
+a nikde nevzniká re-identifikační mapa.
 
-Katalógové dáta (produkty, kategórie, ceny) sa nepseudonymizujú.
+Katalogová data (produkty, kategorie, ceny) se nepseudonymizují.
 
-Vypnúť sa to dá operátorským prepínačom `anonymize_data`, ale je zapnuté
-z dôvodu GDPR a vypínať sa nemá.
+Vypnout se to dá operátorským přepínačem `anonymize_data`, ale je zapnuté
+z důvodu GDPR a vypínat se nemá.
 
-## Konfigurácia
+## Konfigurace
 
-| Kľúč | Typ | Popis |
+| Klíč | Typ | Popis |
 |---|---|---|
-| `api_url` | credential | základná URL API v2 e-shopu |
-| `api_login` | credential | prihlasovacie meno API kľúča |
-| `api_key` | credential (secret) | API kľúč |
-| `anonymize_data` | operator | pseudonymizácia osobných údajov (default zapnuté) |
+| `api_url` | credential | základní URL API v2 e-shopu |
+| `api_login` | credential | přihlašovací jméno API klíče |
+| `api_key` | credential (secret) | API klíč |
+| `anonymize_data` | operator | pseudonymizace osobních údajů (default zapnuté) |
 
-V režime `local-stdio` sa čítajú z env ako `UPGATES_<KEY>` veľkými písmenami.
+V režimu `local-stdio` se čtou z env jako `UPGATES_<KEY>` velkými písmeny.
 
 ## Testy
 
@@ -77,15 +77,15 @@ python -m pytest tests -q
 openmcp-sdk validate connector.yaml
 ```
 
-## Dokumentácia
+## Dokumentace
 
-- [`docs/anonymization.md`](docs/anonymization.md) — pseudonymizácia
+- [`docs/anonymization.md`](docs/anonymization.md) — pseudonymizace
 - [`docs/readonly.md`](docs/readonly.md) — read-only režim
-- [`docs/defaults.md`](docs/defaults.md) — východzie hodnoty a limity
+- [`docs/defaults.md`](docs/defaults.md) — výchozí hodnoty a limity
 - [`docs/tools.md`](docs/tools.md) — nástroje
-- [`dev-docs/upgatesapiv2.apib`](dev-docs/upgatesapiv2.apib) — API špecifikácia dodávateľa
+- [`dev-docs/upgatesapiv2.apib`](dev-docs/upgatesapiv2.apib) — API specifikace dodavatele
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
-## Licencia
+## Licence
 
 [CC BY-NC 4.0](LICENSE)

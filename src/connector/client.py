@@ -1,14 +1,14 @@
-"""HTTP klient pre Upgates e-shop API v2 (s retry/backoff a rate-limit respektom).
+"""HTTP klient pro Upgates e-shop API v2 (s retry/backoff a respektem rate-limitu).
 
-Port `upgates-client.ts` na SDK. Autentizácia je HTTP Basic (`api_login` ako
-login, `api_key` ako heslo) — 1:1 s originálom (axios `auth: {username, password}`).
-Jediná skutočná zmena oproti TS je vstup do konštruktora: klient sa stavia
-priamo z `(api_url, api_login, api_key)` z `openmcp_sdk` request kontextu, nie
-z `UpgatesConfig` čítanej z env premenných (pozri `connector.server._client`).
+Port `upgates-client.ts` na SDK. Autentizace je HTTP Basic (`api_login` jako
+login, `api_key` jako heslo) — 1:1 s originálem (axios `auth: {username, password}`).
+Jediná skutečná změna oproti TS je vstup do konstruktoru: klient se staví
+přímo z `(api_url, api_login, api_key)` z `openmcp_sdk` request kontextu, ne
+z `UpgatesConfig` čtené z env proměnných (viz `connector.server._client`).
 
-TS klient nemal retry (spoliehal sa na axios interceptor len na mapovanie chýb);
-retry/backoff sme pridali podľa vzoru raynet-mcp — čítania sú idempotentné,
-takže opakovanie na 429/5xx je bezpečné a robustnejšie voči rate-limitu Upgates.
+TS klient neměl retry (spoléhal se na axios interceptor jen na mapování chyb);
+retry/backoff jsme přidali podle vzoru raynet-mcp — čtení jsou idempotentní,
+takže opakování na 429/5xx je bezpečné a robustnější vůči rate-limitu Upgates.
 """
 
 from __future__ import annotations

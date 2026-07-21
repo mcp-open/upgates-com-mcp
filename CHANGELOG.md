@@ -1,144 +1,144 @@
 # Changelog
 
-All notable changes to Upgates MCP Server will be documented in this file.
+Všechny významné změny v Upgates MCP Server budou zdokumentovány v tomto souboru.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Formát vychází z [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
+a tento projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Záznamy do verzie 0.1.x popisujú pôvodnú **TypeScript** implementáciu.
-> Od 0.2.0 je konektor v Pythone nad `openmcp-sdk`.
+> Záznamy do verze 0.1.x popisují původní **TypeScript** implementaci.
+> Od 0.2.0 je konektor v Pythonu nad `openmcp-sdk`.
 
 ## [Unreleased]
 
-### Odstránené
+### Odebrané
 
 - **TypeScript strom** (`src/*.ts`, `package.json`, `tsconfig.json`) —
-  nahradený Python implementáciou v `src/connector/` (commit `a8f71aa`).
-  Dohľadateľný v git histórii.
+  nahrazený Python implementací v `src/connector/` (commit `a8f71aa`).
+  Dohledatelný v git historii.
 
-### Opravené (dokumentácia)
+### Opravené (dokumentace)
 
-- `README.md` a `docs/tools.md` tvrdili **34 nástrojov vrátane zapisovacích**
-  (`create_order`, `update_orders`, `delete_orders`). Tie existovali len v TS
-  verzii; Python konektor registruje **23 čítacích** nástrojov a `egress`
-  povoľuje výhradne `GET`. Read-only konektor teda inzeroval zápis.
-- `CONTRIBUTING.md` a `dev-docs/project-structure.md` navádzali na súbory,
-  ktoré už neexistujú.
+- `README.md` a `docs/tools.md` tvrdily **34 nástrojů včetně zapisovacích**
+  (`create_order`, `update_orders`, `delete_orders`). Ty existovaly jen v TS
+  verzi; Python konektor registruje **23 čtecích** nástrojů a `egress`
+  povoluje výhradně `GET`. Read-only konektor tedy inzeroval zápis.
+- `CONTRIBUTING.md` a `dev-docs/project-structure.md` naváděly na soubory,
+  které už neexistují.
 
 ## [0.1.0] - 2025-10-09
 
-### 🎉 Initial Release
+### 🎉 První vydání
 
-First public release of Upgates MCP Server - Model Context Protocol server for Upgates e-shop API v2 integration.
+První veřejné vydání Upgates MCP Server - Model Context Protocol serveru pro integraci s Upgates e-shop API v2.
 
-### ✨ Added
+### ✨ Přidáno
 
-#### LLM Optimization (Token Efficiency)
-- **Automatic response optimization** for all list endpoints
-- **82-99.8% token reduction** depending on endpoint
-  - Orders: 82.2% reduction (~110k tokens saved per 100 orders)
-  - Products: 99.8% reduction (~2M tokens saved per 50 products)
-  - Customers: ~80% reduction
-  - Invoices: ~85% reduction
-  - Carts: ~75% reduction
-- **Field filtering** - keeps only essential fields
-  - Orders: 16 fields instead of 38
-  - Products: 13 fields instead of 50+
-  - Customers: 12 fields instead of 30+
-- **Multi-language deduplication** - first language only
-- **Nested object flattening** - products summary instead of full details
-- **No configuration needed** - works automatically
+#### Optimalizace pro LLM (efektivita tokenů)
+- **Automatická optimalizace odpovědí** pro všechny list endpointy
+- **82-99,8% snížení počtu tokenů** v závislosti na endpointu
+  - Objednávky: snížení o 82,2 % (~110k tokenů ušetřeno na 100 objednávek)
+  - Produkty: snížení o 99,8 % (~2M tokenů ušetřeno na 50 produktů)
+  - Zákazníci: ~80% snížení
+  - Faktury: ~85% snížení
+  - Košíky: ~75% snížení
+- **Filtrování polí** - ponechává jen nezbytná pole
+  - Objednávky: 16 polí místo 38
+  - Produkty: 13 polí místo 50+
+  - Zákazníci: 12 polí místo 30+
+- **Deduplikace vícejazyčnosti** - jen první jazyk
+- **Zplošťování vnořených objektů** - souhrn produktů místo plných detailů
+- **Bez nutnosti konfigurace** - funguje automaticky
 
-#### Core Features
-- **34 Tools** covering main Upgates API endpoints
-  - Orders: list, create, update, delete, history (5 tools)
-  - Order Statuses: list, create (2 tools)
-  - Products: list, list_simple, create, update, delete (5 tools)
-  - Customers: list, create (2 tools)
-  - Categories: list, create (2 tools)
-  - Invoices: list (1 tool)
-  - Labels: list (1 tool)
-  - Availabilities: list (1 tool)
-  - Manufacturers: list (1 tool)
-  - Parameters: list (1 tool)
-  - Carts: list (1 tool)
-  - Vouchers: list, create (2 tools)
-  - Shipments: list (1 tool)
-  - Payments: list (1 tool)
-  - Webhooks: list, create, list_events (3 tools)
-  - System: languages, config, owner, api_status, pricelists (5 tools)
+#### Základní funkce
+- **34 nástrojů** pokrývajících hlavní Upgates API endpointy
+  - Objednávky: list, create, update, delete, history (5 nástrojů)
+  - Stavy objednávek: list, create (2 nástroje)
+  - Produkty: list, list_simple, create, update, delete (5 nástrojů)
+  - Zákazníci: list, create (2 nástroje)
+  - Kategorie: list, create (2 nástroje)
+  - Faktury: list (1 nástroj)
+  - Štítky: list (1 nástroj)
+  - Dostupnosti: list (1 nástroj)
+  - Výrobci: list (1 nástroj)
+  - Parametry: list (1 nástroj)
+  - Košíky: list (1 nástroj)
+  - Slevové kupóny: list, create (2 nástroje)
+  - Doprava: list (1 nástroj)
+  - Platby: list (1 nástroj)
+  - Webhooky: list, create, list_events (3 nástroje)
+  - Systém: languages, config, owner, api_status, pricelists (5 nástrojů)
 
-- **5 Resources** with comprehensive documentation
-  - `upgates://system/info` - Server capabilities and features
-  - `upgates://api/endpoints` - API endpoint overview
-  - `upgates://api/rate-limits` - Rate limiting information
-  - `upgates://config/settings` - Server configuration
-  - `upgates://api/documentation` - Documentation links
+- **5 zdrojů (resources)** s podrobnou dokumentací
+  - `upgates://system/info` - schopnosti a funkce serveru
+  - `upgates://api/endpoints` - přehled API endpointů
+  - `upgates://api/rate-limits` - informace o rate limitingu
+  - `upgates://config/settings` - konfigurace serveru
+  - `upgates://api/documentation` - odkazy na dokumentaci
 
-#### Security Features
-- **HTTP Basic Authentication** - Standard RFC 7617 authentication
-- **Readonly Mode** - Protection against accidental data modifications
-  - Blocks all write operations (create, update, delete)
-  - Allows all read operations (list, get)
-  - Clear error messages for blocked operations
-- **GDPR Data Anonymization** - Comprehensive PII protection
-  - 40+ sensitive fields anonymized
-  - Email, phone, names, addresses
-  - Business identifiers (IČO, DIČ, IBAN, SWIFT)
-  - Deep anonymization for nested objects and arrays
-  - Pattern matching for dynamic fields
+#### Bezpečnostní funkce
+- **HTTP Basic Authentication** - standardní autentizace dle RFC 7617
+- **Readonly režim** - ochrana proti neúmyslným změnám dat
+  - Blokuje všechny zapisovací operace (create, update, delete)
+  - Povoluje všechny čtecí operace (list, get)
+  - Srozumitelné chybové hlášky pro blokované operace
+- **GDPR anonymizace dat** - komplexní ochrana PII
+  - 40+ citlivých polí anonymizováno
+  - E-mail, telefon, jména, adresy
+  - Podnikatelské identifikátory (IČO, DIČ, IBAN, SWIFT)
+  - Hluboká anonymizace vnořených objektů a polí
+  - Rozpoznávání vzorů pro dynamická pole
 
-#### Architecture
-- **Clean Architecture** - Modular design with separation of concerns
-- **TypeScript** - Full type safety with strict mode (2,716 lines)
-- **Error Handling** - 8 custom error classes
+#### Architektura
+- **Clean Architecture** - modulární návrh s oddělením odpovědností
+- **TypeScript** - plná typová bezpečnost se strict módem (2 716 řádků)
+- **Zpracování chyb** - 8 vlastních tříd chyb
   - UpgatesError, ConfigurationError, AuthenticationError
   - ValidationError, NotFoundError, NetworkError
   - RateLimitError, ReadonlyError
-- **Validation Layer** - Comprehensive input validation
-  - Date format validation (ISO 8601)
-  - Pagination validation
-  - ID format validation
-  - Email validation
-- **Rate Limit Handling** - Graceful handling of API limits
-  - Response header parsing
-  - Retry-After support
-  - Clear error messages
+- **Validační vrstva** - komplexní validace vstupů
+  - Validace formátu data (ISO 8601)
+  - Validace stránkování
+  - Validace formátu ID
+  - Validace e-mailu
+- **Zpracování rate limitů** - korektní zvládání limitů API
+  - Parsování response hlaviček
+  - Podpora Retry-After
+  - Srozumitelné chybové hlášky
 
-#### Testing
-- **35 Unit Tests** - 100% pass rate
-  - Error classes (10 tests)
-  - Tool handlers (2 tests)
-  - Validators (11 tests)
-  - Anonymization (12 tests)
-- **Integration Tests** - Tested against live Upgates API
-  - EdgarPower shop (23,789 orders, 87 products)
-  - 6 languages (cs, en, hu, sk, de, pl)
-  - All read operations verified
+#### Testování
+- **35 unit testů** - 100% úspěšnost
+  - Třídy chyb (10 testů)
+  - Handlery nástrojů (2 testy)
+  - Validátory (11 testů)
+  - Anonymizace (12 testů)
+- **Integrační testy** - testováno proti živému Upgates API
+  - Obchod EdgarPower (23 789 objednávek, 87 produktů)
+  - 6 jazyků (cs, en, hu, sk, de, pl)
+  - Ověřeny všechny čtecí operace
 
-#### Documentation
-- **README.md** - User-friendly Czech documentation
-- **TEST_REPORT.md** - Comprehensive test report
-- **CHANGELOG.md** - This file
-- Inline code documentation with JSDoc comments
-- API endpoint mapping from official Upgates API v2 docs
+#### Dokumentace
+- **README.md** - uživatelsky přívětivá česká dokumentace
+- **TEST_REPORT.md** - podrobná testovací zpráva
+- **CHANGELOG.md** - tento soubor
+- Inline dokumentace kódu pomocí JSDoc komentářů
+- Mapování API endpointů z oficiální dokumentace Upgates API v2
 
-#### Configuration
-- Environment variable based configuration
-- Required: UPGATES_API_URL, UPGATES_API_USERNAME, UPGATES_API_PASSWORD
-- Optional: UPGATES_TIMEOUT, UPGATES_READONLY, UPGATES_ANONYMIZE_DATA
-- Validation on startup with helpful error messages
-- Safe config logging (credentials never exposed)
+#### Konfigurace
+- Konfigurace přes proměnné prostředí
+- Povinné: UPGATES_API_URL, UPGATES_API_USERNAME, UPGATES_API_PASSWORD
+- Volitelné: UPGATES_TIMEOUT, UPGATES_READONLY, UPGATES_ANONYMIZE_DATA
+- Validace při startu s užitečnými chybovými hláškami
+- Bezpečné logování konfigurace (credentials nikdy nejsou vystaveny)
 
-### 🔧 Technical Details
+### 🔧 Technické detaily
 
-#### Dependencies
-- `@modelcontextprotocol/sdk` - MCP protocol implementation
-- `axios` - HTTP client for API communication
-- `typescript` - Type safety and compilation
-- `tsx` - TypeScript test execution
+#### Závislosti
+- `@modelcontextprotocol/sdk` - implementace MCP protokolu
+- `axios` - HTTP klient pro komunikaci s API
+- `typescript` - typová bezpečnost a kompilace
+- `tsx` - spouštění TypeScript testů
 
-#### Supported Upgates API v2 Groups
+#### Podporované skupiny Upgates API v2
 - Objednávky (Orders)
 - Stavy objednávky (Order Statuses)
 - Faktury (Invoices)
@@ -160,38 +160,38 @@ First public release of Upgates MCP Server - Model Context Protocol server for U
 - Provozovatel (Owner)
 - API Status
 
-#### API Limits Supported
-- Rate limit tiers (Bronze to Exclusive)
-- Concurrent request limiting (max 3)
-- Bulk operations (max 100 items)
-- Pagination (50-100 items per page)
-- Response header parsing for remaining limits
+#### Podporované limity API
+- Rate limit tiery (Bronze až Exclusive)
+- Omezení souběžných requestů (max 3)
+- Hromadné operace (max 100 položek)
+- Stránkování (50-100 položek na stránku)
+- Parsování response hlaviček pro zbývající limity
 
-### 📝 Known Limitations
+### 📝 Známá omezení
 
-- API user permissions are server-side configured
-- Some endpoints require specific permissions to work
-- Write operations require `UPGATES_READONLY=false`
-- PDF generation endpoints not yet implemented
+- Oprávnění API uživatele se konfigurují na straně serveru
+- Některé endpointy vyžadují ke správné funkci specifická oprávnění
+- Zapisovací operace vyžadují `UPGATES_READONLY=false`
+- PDF generování endpointů zatím není implementováno
 
-### 🎯 Future Enhancements
+### 🎯 Plánovaná vylepšení
 
-Planned for future releases:
-- PDF download support (invoices, orders)
-- Additional endpoint groups (Articles, News, Advisor, Files)
-- Stock management tools
-- Custom field (Metas) support
-- Graphics and backup management
-- Conversion code management
-- More comprehensive integration tests
+Plánováno pro budoucí vydání:
+- Podpora stahování PDF (faktury, objednávky)
+- Další skupiny endpointů (Articles, News, Advisor, Files)
+- Nástroje pro správu skladu
+- Podpora vlastních polí (Metas)
+- Správa grafiky a záloh
+- Správa konverzních kódů
+- Rozsáhlejší integrační testy
 
 ---
 
-## How to Upgrade
+## Jak upgradovat
 
-### From scratch to 0.1.0
+### Ze začátku na 0.1.0
 
-This is the initial release, so just install:
+Toto je první vydání, takže stačí nainstalovat:
 
 ```bash
 git clone https://github.com/LukasOrcik/upgates-com-mcp.git
@@ -202,37 +202,37 @@ npm run build
 
 ---
 
-## Contributing
+## Přispívání
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Příspěvky jsou vítány! Neváhejte poslat Pull Request.
 
-### Development Setup
+### Nastavení vývojového prostředí
 
 ```bash
-# Clone repository
+# Naklonování repozitáře
 git clone https://github.com/LukasOrcik/upgates-com-mcp.git
 cd upgates-com-mcp
 
-# Install dependencies
+# Instalace závislostí
 npm install
 
-# Run in development mode
+# Spuštění ve vývojovém režimu
 npm run dev
 
-# Run tests
+# Spuštění testů
 npm test
 ```
 
 ---
 
-## Links
+## Odkazy
 
-- **Homepage**: https://openmcp.cz
-- **Repository**: https://github.com/LukasOrcik/upgates-com-mcp
+- **Domovská stránka**: https://openmcp.cz
+- **Repozitář**: https://github.com/LukasOrcik/upgates-com-mcp
 - **Issues**: https://github.com/LukasOrcik/upgates-com-mcp/issues
-- **Upgates API Docs**: https://upgatesapiv2.docs.apiary.io/
+- **Dokumentace Upgates API**: https://upgatesapiv2.docs.apiary.io/
 - **Model Context Protocol**: https://modelcontextprotocol.io/
 
 ---
 
-**Note**: This is a community project and is not officially affiliated with Upgates.
+**Poznámka**: Toto je komunitní projekt a není oficiálně spojen se společností Upgates.

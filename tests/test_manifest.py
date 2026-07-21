@@ -1,5 +1,5 @@
-"""`connector.yaml` musí byť platný manifest podľa `openmcp_sdk.manifest`
-a jeho display.tools sa nesmie rozísť s reálne zaregistrovanými nástrojmi."""
+"""`connector.yaml` musí být platný manifest podle `openmcp_sdk.manifest`
+a jeho display.tools se nesmí rozejít s reálně zaregistrovanými nástroji."""
 
 from __future__ import annotations
 

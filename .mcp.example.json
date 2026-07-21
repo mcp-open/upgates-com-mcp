@@ -1,14 +1,17 @@
 {
   "mcpServers": {
     "upgates": {
-      "command": "node",
-      "args": ["/absolute/path/to/upgates-com-mcp/dist/index.js"],
+      "command": "python",
+      "args": ["-m", "connector"],
+      "cwd": "/absolute/path/to/upgates-com-mcp",
       "env": {
-        "UPGATES_API_URL": "https://your-shop.admin.s17.upgates.com/api/v2",
-        "UPGATES_API_USERNAME": "your-api-username",
-        "UPGATES_API_PASSWORD": "your-api-key",
-        "UPGATES_READONLY": "true",
-        "UPGATES_ANONYMIZE_DATA": "true"
+        "OPENMCP_MODE": "local-stdio",
+        "UPGATES_API_URL": "https://vas-eshop.admin.upgates.com/api/v2",
+        "UPGATES_API_LOGIN": "api-login",
+        "UPGATES_API_KEY": "api-kluc",
+        "UPGATES_READ_ONLY": "true",
+        "UPGATES_ANONYMIZE_DATA": "true",
+        "OPENMCP_PII_SALT": "vygeneruj-vlastni-openssl-rand-hex-32"
       }
     }
   }

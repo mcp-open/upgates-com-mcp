@@ -46,8 +46,8 @@ def test_invalid_url_raises():
 
 
 def test_uses_basic_auth_login_and_api_key():
-    """Kontraktný test: reálna konštrukcia musí použiť HTTP Basic (login, api_key),
-    nie Bearer — presne ako axios `auth: {username, password}` v origináli."""
+    """Kontraktní test: reálná konstrukce musí použít HTTP Basic (login, api_key),
+    ne Bearer — přesně jako axios `auth: {username, password}` v originále."""
     c = UpgatesClient(
         api_url="https://acme.admin.upgates.com/api/v2",
         api_login="api_user",
