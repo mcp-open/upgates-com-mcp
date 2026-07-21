@@ -8,7 +8,6 @@ from openmcp_sdk import testing
 from openmcp_sdk.envelope import ConnectorError, ErrorCode
 
 from connector import server
-from connector.client import UpgatesError
 
 _CFG = {"api_url": "https://acme.admin.upgates.com/api/v2", "api_login": "u"}
 
@@ -18,7 +17,7 @@ class _Fake:
         self._response = response
         self._error = error
 
-    def get(self, path, params=None):
+    def get_json(self, path, params=None):
         if self._error is not None:
             raise self._error
         return self._response
@@ -28,7 +27,7 @@ class _Fake:
 
 
 def test_connection_success_returns_message_with_shop_url(monkeypatch):
-    monkeypatch.setattr(server, "UpgatesClient", lambda **kw: _Fake({"status": "ok"}))
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: _Fake({"status": "ok"}))
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
         message = server.test_connection()
     assert _CFG["api_url"] in message
@@ -36,8 +35,8 @@ def test_connection_success_returns_message_with_shop_url(monkeypatch):
 
 
 def test_connection_invalid_credentials_raises_invalid_input(monkeypatch):
-    err = UpgatesError("Upgates odmítl přihlášení", status_code=401)
-    monkeypatch.setattr(server, "UpgatesClient", lambda **kw: _Fake(error=err))
+    err = ConnectorError(ErrorCode.FORBIDDEN, "upstream odmítl přístupové údaje", status=401)
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: _Fake(error=err))
     with testing.with_context({"api_key": "bad"}, _CFG, sub="s1"):
         with pytest.raises(ConnectorError) as exc:
             server.test_connection()
@@ -46,8 +45,8 @@ def test_connection_invalid_credentials_raises_invalid_input(monkeypatch):
 
 
 def test_connection_403_also_invalid_input(monkeypatch):
-    err = UpgatesError("forbidden", status_code=403)
-    monkeypatch.setattr(server, "UpgatesClient", lambda **kw: _Fake(error=err))
+    err = ConnectorError(ErrorCode.FORBIDDEN, "upstream odmítl přístup", status=403)
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: _Fake(error=err))
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
         with pytest.raises(ConnectorError) as exc:
             server.test_connection()
@@ -55,8 +54,8 @@ def test_connection_403_also_invalid_input(monkeypatch):
 
 
 def test_connection_network_error_maps_to_upstream_unavailable(monkeypatch):
-    err = UpgatesError("Síťová chyba při GET /status (po 4 pokusech): timeout")
-    monkeypatch.setattr(server, "UpgatesClient", lambda **kw: _Fake(error=err))
+    err = ConnectorError(ErrorCode.UPSTREAM_UNAVAILABLE, "upstream je nedostupný")
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: _Fake(error=err))
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
         with pytest.raises(ConnectorError) as exc:
             server.test_connection()
@@ -65,8 +64,8 @@ def test_connection_network_error_maps_to_upstream_unavailable(monkeypatch):
 
 
 def test_connection_5xx_maps_to_upstream_unavailable_without_leaking_body(monkeypatch):
-    err = UpgatesError("HTTP 503 při GET /status: <vendor body>", status_code=503)
-    monkeypatch.setattr(server, "UpgatesClient", lambda **kw: _Fake(error=err))
+    err = ConnectorError(ErrorCode.UPSTREAM_ERROR, "upstream selhal se stavem 503", status=503)
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: _Fake(error=err))
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
         with pytest.raises(ConnectorError) as exc:
             server.test_connection()
@@ -76,9 +75,9 @@ def test_connection_5xx_maps_to_upstream_unavailable_without_leaking_body(monkey
 
 def test_connection_client_construction_failure_raises_invalid_input(monkeypatch):
     def _boom(**kw):
-        raise UpgatesError("Neplatná URL API e-shopu")
+        raise ConnectorError(ErrorCode.INVALID_INPUT, "base_url musí být absolutní http(s) adresa")
 
-    monkeypatch.setattr(server, "UpgatesClient", _boom)
+    monkeypatch.setattr(server, "UpstreamClient", _boom)
     with testing.with_context({"api_key": "k"}, {**_CFG, "api_url": "bad"}, sub="s1"):
         with pytest.raises(ConnectorError) as exc:
             server.test_connection()

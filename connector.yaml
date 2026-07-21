@@ -8,7 +8,7 @@ summary: >
   Zákaznická osobní data (e-maily, telefony, jména, adresy, IČO/DIČ,
   bankovní spojení) jsou před odpovědí pseudonymizována na stabilní tokeny
   typu <EMAIL_3f9c1a2b4d5e>, takže do LLM neproteče PII (GDPR).
-sdk_min_version: 0.2.0
+sdk_min_version: 0.4.0
 
 credentials:
   - key: api_url
@@ -100,6 +100,9 @@ display:
       description: "Stav API a seznam povolených endpointů pro aktuálního uživatele"
     - name: list_pricelists
       description: "Seznam ceníků"
+
+runtime:
+  pii_salt: true
 
 egress:
   host: '*.admin.upgates.com'

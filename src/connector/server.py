@@ -15,7 +15,7 @@ zdroj identity/credentials:
 - Každý nástroj zůstává plain funkcí (ne `@mcp.tool` dekorátor přímo), aby ho
   unit testy mohly zavolat přímo; registrace níže (`mcp.tool(fn, annotations=…)`)
   ho přihlásí jako MCP nástroj s `readOnlyHint=True`.
-- GDPR pseudonymizace (`connector.anonymize.Pseudonymizer`) je gated
+- GDPR pseudonymizace (`openmcp_sdk.pii.Pseudonymizer` + `connector.pii_fields.POLICY`) je gated
   operátorským přepínačem `current_context().config.get("anonymize_data", True)`
   (default zapnuto). Aplikuje se — stejně jako v TS — na nástroje nesoucí
   zákaznická data (objednávky, faktury, zákazníci, košíky, provozovatel).
@@ -34,11 +34,12 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from openmcp_sdk import ConnectorError, ErrorCode, current_context
+from openmcp_sdk.http import UpstreamClient
 from openmcp_sdk.logging import setup as _log_setup
+from openmcp_sdk.pii import Pseudonymizer, derive_key
 
-from connector.anonymize import Pseudonymizer, derive_key
-from connector.client import UpgatesClient, UpgatesError
 from connector.optimizers import optimize_list_response
+from connector.pii_fields import POLICY
 from connector.validators import validate_date_range, validate_page
 
 logger = logging.getLogger(__name__)
@@ -72,13 +73,17 @@ _D_DATE_TO = Field(description="Filtrovat do tohoto data (YYYY-MM-DD)")
 # =============================================================================
 # Klient + společná cesta požadavku
 # =============================================================================
-def _client() -> UpgatesClient:
-    """Upgates klient z aktuálního request kontextu (SDK identita + creds)."""
+def _client() -> UpstreamClient:
+    """Upgates klient z aktuálního request kontextu (SDK identita + creds).
+
+    Retry (429/5xx), timeout a mapování HTTP stavů na `ConnectorError` dělá
+    sdílený `openmcp_sdk.http.UpstreamClient` — Upgates API nemá vlastní
+    zvláštnost oproti výchozí politice (HTTP Basic je `auth=(login, api_key)`).
+    """
     ctx = current_context()
-    return UpgatesClient(
-        api_url=ctx.config["api_url"],
-        api_login=ctx.config["api_login"],
-        api_key=ctx.secrets["api_key"],
+    return UpstreamClient(
+        base_url=ctx.config["api_url"],
+        auth=(ctx.config["api_login"], ctx.secrets["api_key"]),
     )
 
 
@@ -87,7 +92,7 @@ def _anon_enabled() -> bool:
 
 
 def _pseudonymizer() -> Pseudonymizer:
-    return Pseudonymizer(derive_key(current_context().principal.sub))
+    return Pseudonymizer(derive_key(current_context().principal.sub), POLICY)
 
 
 def _path_segment(value: int | str, label: str) -> str:
@@ -127,9 +132,7 @@ def _get(
     """
     client = _client()
     try:
-        body = client.get(path, params)
-    except UpgatesError as exc:
-        raise ConnectorError(ErrorCode.UPSTREAM_ERROR, str(exc)) from exc
+        body = client.get_json(path, params)
     finally:
         client.close()
 
@@ -491,23 +494,23 @@ def list_pricelists() -> Any:
 def test_connection() -> str:
     """Ad-hoc test spojení s Upgates (SDK interní `POST /test`).
 
-    `_client()` samotný smí spadnout (`UpgatesError` z neplatné URL, `KeyError`
+    `_client()` samotný smí spadnout (`ConnectorError` z neplatné URL, `KeyError`
     z chybějícího pole v kontextu) dřív, než stihne cokoliv zavolat — bez
     vlastního try/except by taková chyba unikla jako 500. Klasifikace chyby
-    z `client.get()` je strukturovaná přes `UpgatesError.status_code`: 401/403
+    z `client.get_json()` je strukturovaná přes `ConnectorError.status`: 401/403
     (neplatný login/klíč) → INVALID_INPUT (uživatel to má šanci opravit),
     cokoliv jiného (timeout, 5xx, rate limit) → UPSTREAM_UNAVAILABLE. Zprávě se
     záměrně nepředává syrový `str(exc)` (může nést vendor tělo).
     """
     try:
         client = _client()
-    except (UpgatesError, KeyError) as exc:
+    except (ConnectorError, KeyError) as exc:
         raise ConnectorError(ErrorCode.INVALID_INPUT, "Neplatné údaje připojení") from exc
 
     try:
-        client.get("/status")
-    except UpgatesError as exc:
-        if exc.status_code in (401, 403):
+        client.get_json("/status")
+    except ConnectorError as exc:
+        if exc.status in (401, 403):
             raise ConnectorError(
                 ErrorCode.INVALID_INPUT, "Neplatný API login nebo klíč"
             ) from exc

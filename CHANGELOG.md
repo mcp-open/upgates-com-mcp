@@ -10,6 +10,20 @@ a tento projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
+### Změněné
+
+- **HTTP klient a PII přesunuty do `openmcp-sdk` 0.4.** `src/connector/client.py`
+  (vlastní retry/backoff/`UpgatesError`) a `src/connector/anonymize.py`
+  (vlastní tokenizace) jsou nahrazené sdílenými `openmcp_sdk.http.UpstreamClient`
+  a `openmcp_sdk.pii` — konektoru zůstává jen `src/connector/pii_fields.py`
+  (mapy polí, žádná logika). **Pseudonymizační tokeny jsou bit-identické**
+  s předchozí implementací (ověřeno golden-file testem v `test_anonymize.py`)
+  — uživatel neuvidí jiné ID pro stejná data.
+- `sdk_min_version` zvednuté na `0.4.0`, přidán `runtime.pii_salt: true` do
+  `connector.yaml` (chybělo, přestože konektor salt vždy vyžadoval —
+  `require_salt()` si dřív volal ručně v `__main__.py`; teď to dělá
+  `run_connector` sám).
+
 ### Odebrané
 
 - **TypeScript strom** (`src/*.ts`, `package.json`, `tsconfig.json`) —

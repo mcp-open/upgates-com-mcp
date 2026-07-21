@@ -3,7 +3,7 @@
 Věrný port `optimizers/index.ts`: z bohatých objektů Upgates API vybere jen
 podstatná pole a omezí počet položek na stránce (``MAX_ITEMS_FOR_MCP``), aby
 odpověď nepřekročila token limit MCP. Katalogová i zákaznická data se tvarují
-stejně jako v TS; pseudonymizace (`connector.anonymize`) běží až NAD výstupem
+stejně jako v TS; pseudonymizace (`openmcp_sdk.pii` + `connector.pii_fields`) běží až NAD výstupem
 těchto funkcí (stejné pořadí jako TS: optimize → anonymize).
 """
 

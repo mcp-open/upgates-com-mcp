@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from connector.anonymize import Pseudonymizer, TOKEN_RE, derive_key, require_salt
+from openmcp_sdk.pii import TOKEN_RE, Pseudonymizer, derive_key, require_salt
+
+from connector.pii_fields import POLICY
 
 
 def _pseudo(sub: str = "shop-1") -> Pseudonymizer:
-    return Pseudonymizer(derive_key(sub))
+    return Pseudonymizer(derive_key(sub), POLICY)
 
 
 def test_require_salt_missing_raises(monkeypatch):
@@ -101,3 +103,49 @@ def test_bool_and_none_pass_through():
     assert out["active_yn"] is True
     assert out["name"] is None
     assert out["phone"] == ""
+
+
+def test_golden_tokens_bit_identical_to_pre_sdk_migration(monkeypatch):
+    """Zafixované tokeny spočítané starým `connector.anonymize` (před přechodem
+    na `openmcp_sdk.pii`) se saltem ``test-golden-salt`` a ``sub="shop-1"``.
+
+    Token je externě viditelný, dlouhodobě stabilní kontrakt — migrace na
+    sdílený SDK modul ho nesmí změnit ani o bit, jinak uživatel uvidí najednou
+    jiné ID pro stejný záznam.
+    """
+    monkeypatch.setenv("OPENMCP_PII_SALT", "test-golden-salt")
+    sample = {
+        "email": "jan@example.cz",
+        "firstname": "Jan",
+        "surname": "Novák",
+        "city": "Praha",
+        "street": "Dlouhá 5",
+        "zip": "11000",
+        "ico": "12345678",
+        "dic": "CZ12345678",
+        "iban": "CZ65",
+        "variable_symbol": "2024001",
+        "delivery_name": "Jan Novák",
+        "code": "PROD-123",
+        "customer_code": "CUST-9",
+        "customer_note": "Volejte na +420777123456, dík. Doručit v pátek.",
+        "phone": "+420777123456",
+    }
+    out = Pseudonymizer(derive_key("shop-1"), POLICY).sanitize(sample)
+    assert out == {
+        "email": "<EMAIL_ca7217dca4cb>",
+        "firstname": "<NAME_e3c4b2a245be>",
+        "surname": "<NAME_9b4f81cdcad1>",
+        "city": "<ADDR_490961abb91c>",
+        "street": "<ADDR_e771b466b42b>",
+        "zip": "<ADDR_af66925845bb>",
+        "ico": "<REGNUM_48a4bfe88473>",
+        "dic": "<TAXNUM_c879d42c666b>",
+        "iban": "<BANK_c38bfdc3ce93>",
+        "variable_symbol": "<BANK_441db0044338>",
+        "delivery_name": "<NAME_172b9e8db6f3>",
+        "code": "PROD-123",
+        "customer_code": "<CUSTCODE_4cc820d3186a>",
+        "customer_note": "Volejte na <PHONE_5d7d27642430>, dík. Doručit v pátek.",
+        "phone": "<PHONE_5d7d27642430>",
+    }

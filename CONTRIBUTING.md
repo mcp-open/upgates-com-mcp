@@ -37,7 +37,9 @@ Oba musí projít. `validate` ověřuje i invarianty platformy (egress,
    Anotace je **bezpečnostní hranice**: při zapnutém read-only režimu SDK
    fail-closed odregistruje vše, co `readOnlyHint=True` nemá — nástroj bez
    ní v produkci tiše zmizí.
-2. **Cesta v `src/connector/client.py`.** Ne přímo v nástroji.
+2. **Volání přes `_get()` v `src/connector/server.py`.** Endpoint a parametry
+   patří do funkce nástroje, HTTP mechaniku (retry, timeout, chyby) řeší
+   sdílený `openmcp_sdk.http.UpstreamClient` — nepiš vlastní HTTP kód.
 3. **Záznam v `display.tools`** v `connector.yaml`. Bez něj platforma nástroj
    nezaklasifikuje a bude fail-closed zamítnut. Shodu se zaregistrovanými
    nástroji hlídá test.
@@ -47,7 +49,7 @@ Oba musí projít. `validate` ověřuje i invarianty platformy (egress,
 ## Osobní údaje
 
 Nové pole s osobními údaji patří do tabulek v
-`src/connector/anonymize.py` — nikdy se neřeší ad hoc v kódu nástroje.
+`src/connector/pii_fields.py` — nikdy se neřeší ad hoc v kódu nástroje.
 
 Pseudonymizační tokeny jsou **externě viditelný kontrakt**: když se změní jejich
 odvození, uživatel uvidí jiné ID pro stejná data. Takovou změnu je třeba

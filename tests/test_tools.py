@@ -1,8 +1,8 @@
 """Unit testy pro `upgates` nástroje — přímo, bez běžícího MCP transportu.
 
-`_client()` staví `UpgatesClient` výhradně z `openmcp_sdk.current_context()`
+`_client()` staví `UpstreamClient` výhradně z `openmcp_sdk.current_context()`
 (secrets `api_key`, config `api_url`/`api_login`) — testy proto monkeypatchují
-`server.UpgatesClient` místo mockování sítě.
+`server.UpstreamClient` místo mockování sítě.
 """
 
 from __future__ import annotations
@@ -21,13 +21,13 @@ _CFG = {"api_url": "https://acme.admin.upgates.com/api/v2", "api_login": "u"}
 
 
 class _Fake:
-    """Stub UpgatesClient — zaznamená path/params, vrací předpřipravenou odpověď."""
+    """Stub UpstreamClient — zaznamená path/params, vrací předpřipravenou odpověď."""
 
     def __init__(self, response=None):
         self._response = response if response is not None else {"ok": True}
         self.calls: list[tuple[str, dict | None]] = []
 
-    def get(self, path, params=None):
+    def get_json(self, path, params=None):
         self.calls.append((path, params))
         return self._response
 
@@ -37,16 +37,16 @@ class _Fake:
 
 def _patch(monkeypatch, response=None):
     fake = _Fake(response)
-    monkeypatch.setattr(server, "UpgatesClient", lambda **kw: fake)
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: fake)
     return fake
 
 
 def test_client_built_from_context(monkeypatch):
     captured = {}
-    monkeypatch.setattr(server, "UpgatesClient", lambda **kw: captured.update(kw) or _Fake())
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: captured.update(kw) or _Fake())
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
         server.get_api_status()
-    assert captured == {"api_url": _CFG["api_url"], "api_login": "u", "api_key": "k"}
+    assert captured == {"base_url": _CFG["api_url"], "auth": ("u", "k")}
 
 
 def test_list_orders_optimizes_and_anonymizes(monkeypatch):
@@ -131,16 +131,14 @@ def test_invalid_date_format_raises(monkeypatch):
 
 
 def test_upstream_error_maps_to_connector_error(monkeypatch):
-    from connector.client import UpgatesError
-
     class _Boom:
-        def get(self, path, params=None):
-            raise UpgatesError("HTTP 500 ...", status_code=500)
+        def get_json(self, path, params=None):
+            raise ConnectorError(ErrorCode.UPSTREAM_ERROR, "upstream selhal se stavem 500", status=500)
 
         def close(self):
             pass
 
-    monkeypatch.setattr(server, "UpgatesClient", lambda **kw: _Boom())
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: _Boom())
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
         with pytest.raises(ConnectorError) as exc:
             server.list_pricelists()
