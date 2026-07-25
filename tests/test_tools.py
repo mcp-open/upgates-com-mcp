@@ -17,7 +17,10 @@ from openmcp_sdk.envelope import ConnectorError, ErrorCode
 
 from connector import server
 
-_CFG = {"api_url": "https://acme.admin.upgates.com/api/v2", "api_login": "u"}
+_CFG = {
+    "api_url": "https://acme.admin.server.upgates.com/api/v2",
+    "api_login": "u",
+}
 
 
 class _Fake:
@@ -52,15 +55,19 @@ def test_client_built_from_context(monkeypatch):
 @pytest.mark.parametrize(
     "api_url",
     [
-        "http://acme.admin.upgates.com/api/v2",
+        "http://acme.admin.server.upgates.com/api/v2",
         "https://attacker.example/api/v2",
-        "https://acme.admin.upgates.com.evil.example/api/v2",
+        "https://acme.admin.server.upgates.com.evil.example/api/v2",
+        "https://acme.admin.upgates.com/api/v2",
         "https://admin.upgates.com/api/v2",
-        "https://user:pass@acme.admin.upgates.com/api/v2",
-        "https://acme.admin.upgates.com:8443/api/v2",
-        "https://acme.admin.upgates.com/api/v2/other",
-        "https://acme.admin.upgates.com/api/v2?key=value",
-        " https://acme.admin.upgates.com/api/v2",
+        "https://admin.server.upgates.com/api/v2",
+        "https://acme.other.server.upgates.com/api/v2",
+        "https://acme.admin.server.extra.upgates.com/api/v2",
+        "https://user:pass@acme.admin.server.upgates.com/api/v2",
+        "https://acme.admin.server.upgates.com:8443/api/v2",
+        "https://acme.admin.server.upgates.com/api/v2/other",
+        "https://acme.admin.server.upgates.com/api/v2?key=value",
+        " https://acme.admin.server.upgates.com/api/v2",
     ],
 )
 def test_client_never_sends_basic_credentials_outside_exact_upgates_origin(
@@ -92,12 +99,15 @@ def test_client_normalizes_allowed_upgates_url_before_attaching_basic_auth(monke
     )
     with testing.with_context(
         {"api_key": "k"},
-        {**_CFG, "api_url": "https://acme.admin.upgates.com:443/api/v2/"},
+        {
+            **_CFG,
+            "api_url": "https://acme.admin.server.upgates.com:443/api/v2/",
+        },
         sub="s1",
     ):
         server._client()
     assert captured == {
-        "base_url": "https://acme.admin.upgates.com:443/api/v2",
+        "base_url": "https://acme.admin.server.upgates.com:443/api/v2",
         "auth": ("u", "k"),
     }
 
@@ -119,12 +129,12 @@ def test_list_orders_optimizes_and_anonymizes(monkeypatch):
     assert out["mcp_limited_to"] == 15  # optimalizace proběhla
 
 
-def test_anonymize_disabled_passes_customer_data(monkeypatch):
+def test_legacy_anonymize_false_cannot_disable_customer_protection(monkeypatch):
     page = {"orders": [{"order_number": "1", "customer": {"email": "jan@example.cz"}}]}
     _patch(monkeypatch, page)
     with testing.with_context({"api_key": "k"}, {**_CFG, "anonymize_data": False}, sub="s1"):
         out = server.list_orders()
-    assert out["orders"][0]["customer"]["email"] == "jan@example.cz"
+    assert out["orders"][0]["customer"]["email"].startswith("<EMAIL_")
 
 
 def test_list_orders_default_query(monkeypatch):
@@ -146,6 +156,94 @@ def test_list_orders_single_order_endpoint_encoded(monkeypatch):
     assert path.startswith("/orders/")
     assert "/secret" not in path  # path injection zneškodněna
     assert "%2F" in path
+
+
+@pytest.mark.parametrize("order_number", [".", "..", " . ", " .. "])
+def test_order_history_rejects_dot_segments_before_http(monkeypatch, order_number):
+    fake = _patch(monkeypatch, {"history": []})
+    with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
+        with pytest.raises(ConnectorError) as exc:
+            server.get_order_history(order_number)
+    assert exc.value.code is ErrorCode.INVALID_INPUT
+    assert fake.calls == []
+
+
+def test_order_history_fail_closed_tokens_dynamic_values(monkeypatch):
+    response = {
+        "history": [
+            {
+                "event": "Order.Update",
+                "user_name": "Alice Novakova",
+                "origin": "admin",
+                "changes": [
+                    {
+                        "name": "delivery address",
+                        "before": "Old Street 1",
+                        "after": "New Street 2",
+                    },
+                    {
+                        "name": "phone",
+                        "before": "+420777111222",
+                        "after": "+420777333444",
+                    },
+                ],
+                "data": [
+                    {"name": "address", "value": "Secret Street 3"},
+                    {"name": "email", "value": "alice@example.test"},
+                ],
+            }
+        ]
+    }
+    _patch(monkeypatch, response)
+    with testing.with_context({"api_key": "k"}, _CFG, sub="shop-1"):
+        out = server.get_order_history("ORDER-1")
+
+    raw = repr(out)
+    for secret in (
+        "Alice Novakova",
+        "Old Street 1",
+        "New Street 2",
+        "Secret Street 3",
+        "+420777111222",
+        "+420777333444",
+        "alice@example.test",
+    ):
+        assert secret not in raw
+    item = out["history"][0]
+    assert item["event"] == "Order.Update"
+    assert item["origin"] == "admin"
+    assert item["changes"][0]["name"] == "delivery address"
+    assert item["changes"][0]["before"].startswith("<HISTORY_")
+    assert item["changes"][0]["after"].startswith("<HISTORY_")
+    assert item["data"][0]["name"] == "address"
+    assert item["data"][0]["value"].startswith("<HISTORY_")
+    assert item["user_name"].startswith("<NAME_")
+
+
+def test_webhook_urls_never_expose_credentials(monkeypatch):
+    response = {
+        "webhooks": [
+            {
+                "id": 7,
+                "active_yn": True,
+                "name": "private endpoint",
+                "url": "https://user:secret@hooks.example/path?token=abc",
+                "event": "Orders.Update",
+            }
+        ]
+    }
+    _patch(monkeypatch, response)
+    with testing.with_context({"api_key": "k"}, _CFG, sub="shop-1"):
+        out = server.list_webhooks()
+
+    webhook = out["webhooks"][0]
+    assert webhook["url"].startswith("<URL_")
+    assert "user" not in webhook["url"]
+    assert "secret" not in repr(out)
+    assert "token=abc" not in repr(out)
+    assert webhook["id"] == 7
+    assert webhook["active_yn"] is True
+    assert webhook["event"] == "Orders.Update"
 
 
 def test_list_products_not_anonymized_and_optimized(monkeypatch):
@@ -209,7 +307,7 @@ EXPECTED_TOOLS = {
 
 
 def test_tool_inventory_all_read_only():
-    tools = asyncio.run(server.mcp.get_tools())
+    tools = {tool.name: tool for tool in asyncio.run(server.mcp.list_tools())}
     assert set(tools) == EXPECTED_TOOLS
     assert len(tools) == 23
     for name, tool in tools.items():
@@ -217,6 +315,6 @@ def test_tool_inventory_all_read_only():
 
 
 def test_no_write_or_delete_tools_registered():
-    tools = asyncio.run(server.mcp.get_tools())
+    tools = {tool.name: tool for tool in asyncio.run(server.mcp.list_tools())}
     forbidden = [n for n in tools if any(w in n for w in ("create", "update", "delete"))]
     assert forbidden == []

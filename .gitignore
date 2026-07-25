@@ -80,6 +80,7 @@ mcp-logs/
 # Archives
 *.zip
 *.tar.gz
+!release/vendor/openmcp-sdk-*.tar.gz
 *.rar
 
 .mcp.json

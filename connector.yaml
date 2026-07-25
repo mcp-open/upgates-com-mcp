@@ -8,7 +8,7 @@ summary: >
   Zákaznická osobní data (e-maily, telefony, jména, adresy, IČO/DIČ,
   bankovní spojení) jsou před odpovědí pseudonymizována na stabilní tokeny
   typu <EMAIL_3f9c1a2b4d5e>, takže do LLM neproteče PII (GDPR).
-sdk_min_version: 0.4.0
+sdk_min_version: 0.4.2
 
 credentials:
   - key: api_url
@@ -16,7 +16,7 @@ credentials:
     type: string
     secret: false
     required: true
-    hint: "Základní URL Upgates API v2, např. https://vas-eshop.admin.upgates.com/api/v2"
+    hint: "Přesná URL z administrace Upgates, např. https://vas-eshop.admin.s17.upgates.com/api/v2"
   - key: api_login
     label: API login
     type: string
@@ -30,12 +30,7 @@ credentials:
     required: true
     hint: "API klíč (heslo) k Upgates API — Upgates → Nastavení → API"
 
-operator_config:
-  - key: anonymize_data
-    label: Pseudonymizovat osobní údaje
-    type: bool
-    default: true
-    hint: "Nahradí e-maily/telefony/jména/adresy zákazníků stabilními tokeny (<EMAIL_3f9c…>) dřív, než odpověď opustí konektor. Zapnuto (výchozí) kvůli GDPR."
+operator_config: []
 
 capabilities:
   default_read_only: true
@@ -44,6 +39,7 @@ capabilities:
 
 # display (manifest.display) — kurátorovaný verejný manifest pro web detail.
 display:
+  schema_version: 1
   capabilities:
     - "Číst objednávky, faktury, produkty, zákazníky a kategorie z Upgates e-shopu"
     - "Číst košíky, dopravu, platby, slevové kupóny a konfiguraci e-shopu"
@@ -57,7 +53,7 @@ display:
     - name: list_orders
       description: "Seznam objednávek s filtry a stránkováním — zákaznická data jsou pseudonymizována"
     - name: get_order_history
-      description: "Historie konkrétní objednávky"
+      description: "Historie objednávky — jméno uživatele a dynamické hodnoty změn jsou pseudonymizované"
     - name: list_order_statuses
       description: "Seznam stavů objednávek"
     - name: list_invoices
@@ -87,7 +83,7 @@ display:
     - name: list_payments
       description: "Seznam platebních metod"
     - name: list_webhooks
-      description: "Seznam nakonfigurovaných webhooků"
+      description: "Seznam webhooků — cílové URL včetně případných přihlašovacích údajů jsou tokenizované"
     - name: list_webhook_events
       description: "Seznam dostupných webhook událostí"
     - name: get_languages
@@ -100,12 +96,97 @@ display:
       description: "Stav API a seznam povolených endpointů pro aktuálního uživatele"
     - name: list_pricelists
       description: "Seznam ceníků"
+  locales:
+    cs:
+      name: "Upgates"
+      description: "Čtecí propojení s Upgates e-shopem pro objednávky, faktury, produkty, zákazníky, košíky, dopravu, platby a nastavení."
+      capabilities:
+        - "Číst objednávky, faktury, produkty, zákazníky a kategorie"
+        - "Číst košíky, dopravu, platby, kupóny a konfiguraci e-shopu"
+        - "Použít výsledky přímo v konverzaci s podporovaným AI klientem"
+      permissions:
+        - "Pouze čtení přes Upgates API v2 — konektor nezapisuje ani nemaže data"
+        - "Vyžaduje API adresu, login a klíč uložený v chráněném úložišti"
+      data_handling: "Osobní údaje zákazníků a provozovatele se vždy před odesláním do AI klienta pseudonymizují stabilními jednosměrnými tokeny. Katalogová data zůstávají čitelná."
+      example_query: "Ukaž posledních 10 objednávek, jejich stav a celkovou hodnotu."
+      fields:
+        - { key: api_url, label: "URL Upgates API v2" }
+        - { key: api_login, label: "API login" }
+        - { key: api_key, label: "API klíč" }
+      tools:
+        - { name: list_orders, description: "Objednávky s filtry a pseudonymizovanými zákaznickými údaji" }
+        - { name: get_order_history, description: "Historie objednávky s chráněnými uživateli a hodnotami změn" }
+        - { name: list_order_statuses, description: "Stavy objednávek" }
+        - { name: list_invoices, description: "Faktury s chráněnými zákaznickými údaji" }
+        - { name: list_products, description: "Produkty s filtry a stránkováním" }
+        - { name: list_products_simple, description: "Produkty ve zjednodušeném formátu" }
+        - { name: list_customers, description: "Zákazníci s pseudonymizovanými osobními údaji" }
+        - { name: list_categories, description: "Kategorie produktů" }
+        - { name: list_labels, description: "Produktové štítky" }
+        - { name: list_availabilities, description: "Dostupnosti produktů" }
+        - { name: list_manufacturers, description: "Výrobci" }
+        - { name: list_parameters, description: "Produktové parametry" }
+        - { name: list_carts, description: "Košíky s chráněnými zákaznickými údaji" }
+        - { name: list_vouchers, description: "Slevové kupóny" }
+        - { name: list_shipments, description: "Způsoby dopravy" }
+        - { name: list_payments, description: "Platební metody" }
+        - { name: list_webhooks, description: "Nakonfigurované webhooky s tokenizovanými cílovými URL" }
+        - { name: list_webhook_events, description: "Dostupné webhook události" }
+        - { name: get_languages, description: "Jazyky e-shopu" }
+        - { name: get_shop_config, description: "Konfigurace a nastavení e-shopu" }
+        - { name: get_shop_owner, description: "Pseudonymizované fakturační údaje provozovatele" }
+        - { name: get_api_status, description: "Stav API a povolené endpointy" }
+        - { name: list_pricelists, description: "Ceníky" }
+      limitations:
+        - "Konektor je pouze pro čtení a nemůže měnit objednávky, produkty ani nastavení e-shopu."
+    sk:
+      name: "Upgates"
+      description: "Čítacie prepojenie s Upgates e-shopom pre objednávky, faktúry, produkty, zákazníkov, košíky, dopravu, platby a nastavenia."
+      capabilities:
+        - "Čítať objednávky, faktúry, produkty, zákazníkov a kategórie"
+        - "Čítať košíky, dopravu, platby, kupóny a konfiguráciu e-shopu"
+        - "Použiť výsledky priamo v konverzácii s podporovaným AI klientom"
+      permissions:
+        - "Iba čítanie cez Upgates API v2 — konektor nezapisuje ani nemaže údaje"
+        - "Vyžaduje API adresu, prihlasovacie meno a kľúč uložený v chránenom úložisku"
+      data_handling: "Osobné údaje zákazníkov a prevádzkovateľa sa vždy pred odoslaním do AI klienta pseudonymizujú stabilnými jednosmernými tokenmi. Katalógové údaje zostávajú čitateľné."
+      example_query: "Ukáž posledných 10 objednávok, ich stav a celkovú hodnotu."
+      fields:
+        - { key: api_url, label: "URL Upgates API v2" }
+        - { key: api_login, label: "API prihlasovacie meno" }
+        - { key: api_key, label: "API kľúč" }
+      tools:
+        - { name: list_orders, description: "Objednávky s filtrami a pseudonymizovanými zákazníckymi údajmi" }
+        - { name: get_order_history, description: "História objednávky s chránenými používateľmi a hodnotami zmien" }
+        - { name: list_order_statuses, description: "Stavy objednávok" }
+        - { name: list_invoices, description: "Faktúry s chránenými zákazníckymi údajmi" }
+        - { name: list_products, description: "Produkty s filtrami a stránkovaním" }
+        - { name: list_products_simple, description: "Produkty v zjednodušenom formáte" }
+        - { name: list_customers, description: "Zákazníci s pseudonymizovanými osobnými údajmi" }
+        - { name: list_categories, description: "Kategórie produktov" }
+        - { name: list_labels, description: "Produktové štítky" }
+        - { name: list_availabilities, description: "Dostupnosti produktov" }
+        - { name: list_manufacturers, description: "Výrobcovia" }
+        - { name: list_parameters, description: "Produktové parametre" }
+        - { name: list_carts, description: "Košíky s chránenými zákazníckymi údajmi" }
+        - { name: list_vouchers, description: "Zľavové kupóny" }
+        - { name: list_shipments, description: "Spôsoby dopravy" }
+        - { name: list_payments, description: "Platobné metódy" }
+        - { name: list_webhooks, description: "Nakonfigurované webhooky s tokenizovanými cieľovými URL" }
+        - { name: list_webhook_events, description: "Dostupné webhook udalosti" }
+        - { name: get_languages, description: "Jazyky e-shopu" }
+        - { name: get_shop_config, description: "Konfigurácia a nastavenia e-shopu" }
+        - { name: get_shop_owner, description: "Pseudonymizované fakturačné údaje prevádzkovateľa" }
+        - { name: get_api_status, description: "Stav API a povolené endpointy" }
+        - { name: list_pricelists, description: "Cenníky" }
+      limitations:
+        - "Konektor je iba na čítanie a nemôže meniť objednávky, produkty ani nastavenia e-shopu."
 
 runtime:
   pii_salt: true
 
 egress:
-  host: '*.admin.upgates.com'
+  host: '*.admin.*.upgates.com'
   port: 443
   path_prefix: /api/v2
   methods: [GET]

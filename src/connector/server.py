@@ -15,15 +15,16 @@ zdroj identity/credentials:
 - Každý nástroj zůstává plain funkcí (ne `@mcp.tool` dekorátor přímo), aby ho
   unit testy mohly zavolat přímo; registrace níže (`mcp.tool(fn, annotations=…)`)
   ho přihlásí jako MCP nástroj s `readOnlyHint=True`.
-- GDPR pseudonymizace (`openmcp_sdk.pii.Pseudonymizer` + `connector.pii_fields.POLICY`) je gated
-  operátorským přepínačem `current_context().config.get("anonymize_data", True)`
-  (default zapnuto). Aplikuje se — stejně jako v TS — na nástroje nesoucí
-  zákaznická data (objednávky, faktury, zákazníci, košíky, provozovatel).
+- GDPR pseudonymizace (`openmcp_sdk.pii.Pseudonymizer` +
+  `connector.pii_fields.POLICY`) je povinná bezpečnostní hranice. Aplikuje se
+  na nástroje nesoucí zákaznická data (objednávky, faktury, zákazníci, košíky,
+  provozovatel) a operátorská konfigurace ji nemůže vypnout.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 import urllib.parse
 from datetime import date, timedelta
 from typing import Annotated, Any
@@ -33,11 +34,11 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from openmcp_sdk import ConnectorError, ErrorCode, current_context
-from openmcp_sdk.http import UpstreamClient
-from openmcp_sdk.pii import Pseudonymizer, derive_key
+from openmcp_sdk.http import UpstreamClient, encode_segment
+from openmcp_sdk.pii import PiiPolicy, Pseudonymizer, derive_key
 
 from connector.optimizers import optimize_list_response
-from connector.pii_fields import POLICY
+from connector.pii_fields import HISTORY_POLICY, POLICY, WEBHOOK_POLICY
 from connector.validators import validate_date_range, validate_page
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,13 @@ _D_DATE_TO = Field(description="Filtrovat do tohoto data (YYYY-MM-DD)")
 # =============================================================================
 # Klient + společná cesta požadavku
 # =============================================================================
+_DNS_LABEL = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+_UPGATES_API_HOST = re.compile(
+    rf"{_DNS_LABEL}\.admin\.{_DNS_LABEL}\.upgates\.com",
+    re.ASCII,
+)
+
+
 def _validated_api_url(raw: object) -> str:
     """Bind Basic credentials to the exact Upgates HTTPS origin family.
 
@@ -87,8 +95,7 @@ def _validated_api_url(raw: object) -> str:
     hostname = (parsed.hostname or "").lower()
     if (
         parsed.scheme != "https"
-        or not hostname.endswith(".admin.upgates.com")
-        or hostname == "admin.upgates.com"
+        or _UPGATES_API_HOST.fullmatch(hostname) is None
         or port not in (None, 443)
         or parsed.username is not None
         or parsed.password is not None
@@ -98,7 +105,8 @@ def _validated_api_url(raw: object) -> str:
     ):
         raise ConnectorError(
             ErrorCode.INVALID_INPUT,
-            "URL musí být HTTPS adresa e-shopu *.admin.upgates.com s cestou /api/v2.",
+            "URL musí být HTTPS adresa e-shopu "
+            "<eshop>.admin.<server>.upgates.com s cestou /api/v2.",
         )
     return f"https://{hostname}{f':{port}' if port is not None else ''}/api/v2"
 
@@ -117,24 +125,13 @@ def _client() -> UpstreamClient:
     )
 
 
-def _anon_enabled() -> bool:
-    return bool(current_context().config.get("anonymize_data", True))
-
-
-def _pseudonymizer() -> Pseudonymizer:
-    return Pseudonymizer(derive_key(current_context().principal.sub), POLICY)
+def _pseudonymizer(policy: PiiPolicy = POLICY) -> Pseudonymizer:
+    return Pseudonymizer(derive_key(current_context().principal.sub), policy)
 
 
 def _path_segment(value: int | str, label: str) -> str:
-    """Znormalizuj LLM-dodané ID na bezpečný segment cesty (percent-encoding).
-
-    Zneškodní `/`, `?`, `#`, `..` — hodnota nikdy nemůže změnit cílový endpoint
-    (path injection).
-    """
-    text = str(value).strip()
-    if not text:
-        raise ConnectorError(ErrorCode.INVALID_INPUT, f"{label} nesmí být prázdné.")
-    return urllib.parse.quote(text, safe="")
+    """Znormalizuj LLM-dodané ID na bezpečný segment cesty."""
+    return encode_segment(value, label)
 
 
 def _unwrap(body: Any) -> Any:
@@ -154,6 +151,7 @@ def _get(
     *,
     optimize: str | None = None,
     anonymize: bool = False,
+    pii_policy: PiiPolicy = POLICY,
 ) -> Any:
     """GET jednoho endpointu + (volitelně) optimalizace a pseudonymizace.
 
@@ -169,8 +167,8 @@ def _get(
     data = _unwrap(body)
     if optimize is not None:
         data = optimize_list_response(data, optimize)
-    if anonymize and _anon_enabled():
-        data = _pseudonymizer().sanitize(data)
+    if anonymize:
+        data = _pseudonymizer(pii_policy).sanitize(data)
     return data
 
 
@@ -218,9 +216,9 @@ def list_orders(
 def get_order_history(
     order_number: Annotated[str, Field(description="Číslo objednávky")],
 ) -> Any:
-    """Historie konkrétní objednávky. Data zákazníka jsou pseudonymizována."""
+    """Historie objednávky s fail-closed tokenizací změněných hodnot."""
     path = f"/orders/{_path_segment(order_number, 'order_number')}/history"
-    return _get(path, anonymize=True)
+    return _get(path, anonymize=True, pii_policy=HISTORY_POLICY)
 
 
 # =============================================================================
@@ -480,9 +478,9 @@ def list_payments(
 def list_webhooks(
     id: Annotated[int | None, Field(description="Konkrétní ID webhooku")] = None,
 ) -> Any:
-    """Seznam nakonfigurovaných webhooků."""
+    """Seznam webhooků; cílové URL se vždy vracejí jen jako stabilní token."""
     endpoint = f"/webhooks/{_path_segment(id, 'id')}" if id else "/webhooks"
-    return _get(endpoint)
+    return _get(endpoint, anonymize=True, pii_policy=WEBHOOK_POLICY)
 
 
 def list_webhook_events() -> Any:

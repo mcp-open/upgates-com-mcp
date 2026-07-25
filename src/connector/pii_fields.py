@@ -99,3 +99,37 @@ POLICY = PiiPolicy(
     freetext_fields=FREETEXT_FIELDS,
     pattern_category=PATTERN_CATEGORY,
 )
+
+# Historie objednávky má semistrukturované hodnoty: Upgates ukládá změněná
+# data do obecných klíčů ``before``, ``after`` a ``value``. Z názvu klíče tedy
+# nelze spolehlivě poznat, zda jde o adresu, e-mail nebo obchodní stav.
+# Dynamické hodnoty proto tokenizujeme fail-closed. Pole ``name`` v historii
+# naopak popisuje změněnou vlastnost, nikoli osobu; jméno operátora má vlastní
+# klíč ``user_name`` a zůstává chráněné.
+HISTORY_FIELD_CATEGORY = {
+    key: category for key, category in FIELD_CATEGORY.items() if key != "name"
+}
+HISTORY_FIELD_CATEGORY.update(
+    {
+        "user_name": "NAME",
+        "before": "HISTORY",
+        "after": "HISTORY",
+        "value": "HISTORY",
+    }
+)
+HISTORY_POLICY = PiiPolicy(
+    field_category=MappingProxyType(HISTORY_FIELD_CATEGORY),
+    freetext_fields=FREETEXT_FIELDS,
+    pattern_category=tuple(
+        item for item in PATTERN_CATEGORY if item[0] != "name"
+    ),
+)
+
+# URL webhooku je zákazníkem řízená hodnota a Upgates v ní výslovně povoluje
+# přihlašovací údaje. Seznam webhooků proto nesmí vrátit URL v otevřené podobě.
+WEBHOOK_FIELD_CATEGORY = {**FIELD_CATEGORY, "url": "URL"}
+WEBHOOK_POLICY = PiiPolicy(
+    field_category=MappingProxyType(WEBHOOK_FIELD_CATEGORY),
+    freetext_fields=FREETEXT_FIELDS,
+    pattern_category=PATTERN_CATEGORY,
+)

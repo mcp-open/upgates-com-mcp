@@ -10,6 +10,20 @@ a tento projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
+### Opravené
+
+- HTTP transport je stateless, takže následné MCP požadavky nevyžadují
+  replikačně lokální session ID a fungují za více replikami.
+- Cílové URL webhooků se vracejí pouze jako stabilní `<URL_…>` tokeny;
+  případné přihlašovací údaje nebo query tokeny se nedostanou do AI klienta.
+- Obecná pole `before`, `after` a `value` v historii objednávky se tokenizují
+  fail-closed, protože mohou obsahovat libovolné osobní údaje.
+- Čisté dot-segmenty `.` a `..` se odmítnou před sestavením URL a nemohou
+  změnit cílový Upgates endpoint.
+- Veřejná lokální konfigurace a privacy/read-only dokumentace odpovídají
+  povinné pseudonymizaci, aktuální doméně API a skutečným L3/L4 možnostem
+  Kubernetes NetworkPolicy.
+
 ### Změněné
 
 - **HTTP klient a PII přesunuty do `openmcp-sdk` 0.4.** `src/connector/client.py`
@@ -23,6 +37,8 @@ a tento projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   `connector.yaml` (chybělo, přestože konektor salt vždy vyžadoval —
   `require_salt()` si dřív volal ručně v `__main__.py`; teď to dělá
   `run_connector` sám).
+- Release používá přesný vendovaný snapshot SDK a zamčené Python závislosti,
+  které lze ověřit bez mezirepozitárového přístupového tokenu.
 
 ### Odebrané
 

@@ -16,7 +16,7 @@ Součást platformy [OpenMCP.cz](https://openmcp.cz).
 python -m venv .venv && . .venv/bin/activate
 pip install -e ../openmcp-sdk -e .
 export OPENMCP_MODE=local-stdio
-export UPGATES_API_URL="https://vas-eshop.admin.upgates.com/api/v2"
+export UPGATES_API_URL="https://vas-eshop.admin.s17.upgates.com/api/v2"
 export UPGATES_API_LOGIN="api-login"
 export UPGATES_API_KEY="api-klic"
 export OPENMCP_PII_SALT="$(openssl rand -hex 32)"
@@ -54,10 +54,8 @@ se před odesláním do modelu nahradí stabilními tokeny typu
 `<EMAIL_3f9c1a2b4d5e>`. Token je jednosměrný HMAC — nedá se rozšifrovat zpět
 a nikde nevzniká re-identifikační mapa.
 
-Katalogová data (produkty, kategorie, ceny) se nepseudonymizují.
-
-Vypnout se to dá operátorským přepínačem `anonymize_data`, ale je zapnuté
-z důvodu GDPR a vypínat se nemá.
+Katalogová data (produkty, kategorie, ceny) se nepseudonymizují. Ochranu
+osobních údajů nelze operátorskou konfigurací vypnout.
 
 ## Konfigurace
 
@@ -66,7 +64,6 @@ z důvodu GDPR a vypínat se nemá.
 | `api_url` | credential | základní URL API v2 e-shopu |
 | `api_login` | credential | přihlašovací jméno API klíče |
 | `api_key` | credential (secret) | API klíč |
-| `anonymize_data` | operator | pseudonymizace osobních údajů (default zapnuté) |
 
 V režimu `local-stdio` se čtou z env jako `UPGATES_<KEY>` velkými písmeny.
 
