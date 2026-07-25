@@ -57,7 +57,10 @@ jobs:
   build:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: self-hosted
+    # This repository is public. The organization runner group must explicitly
+    # allow public repositories; the hostinger label prevents accidental
+    # assignment to an unrelated self-hosted machine.
+    runs-on: [self-hosted, hostinger]
     timeout-minutes: 45
     env:
       SOURCE_DIR: upgates-source
@@ -141,9 +144,18 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: self-hosted
+    runs-on: [self-hosted, hostinger]
     timeout-minutes: 15
     steps:
+      - name: Verify platform dispatch credential
+        env:
+          OPENMCP_CI_TOKEN: "${{ secrets.OPENMCP_CI_TOKEN }}"
+        run: |
+          test -n "$OPENMCP_CI_TOKEN" || {
+            echo "::error::OPENMCP_CI_TOKEN repository secret is required"
+            exit 1
+          }
+
       - name: Dispatch deploy to platform
         run: |
           curl -sf -X POST \

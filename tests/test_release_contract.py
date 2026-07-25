@@ -50,6 +50,9 @@ def test_ci_is_main_only_for_image_mutations() -> None:
     assert 'python3 "${SOURCE_DIR}/release/materialize_sdk.py"' in ci
     assert ci.count("actions/setup-python@") == 1
     assert "${{ github.event_name }}-${{ github.ref }}" in ci
+    assert ci.count("runs-on: [self-hosted, hostinger]") == 2
+    assert "Verify platform dispatch credential" in ci
+    assert 'test -n "$OPENMCP_CI_TOKEN"' in ci
 
 
 def test_workflow_actions_are_commit_pinned() -> None:
