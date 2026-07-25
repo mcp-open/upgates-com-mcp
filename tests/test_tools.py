@@ -158,6 +158,94 @@ def test_list_orders_single_order_endpoint_encoded(monkeypatch):
     assert "%2F" in path
 
 
+@pytest.mark.parametrize("order_number", [".", "..", " . ", " .. "])
+def test_order_history_rejects_dot_segments_before_http(monkeypatch, order_number):
+    fake = _patch(monkeypatch, {"history": []})
+    with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
+        with pytest.raises(ConnectorError) as exc:
+            server.get_order_history(order_number)
+    assert exc.value.code is ErrorCode.INVALID_INPUT
+    assert fake.calls == []
+
+
+def test_order_history_fail_closed_tokens_dynamic_values(monkeypatch):
+    response = {
+        "history": [
+            {
+                "event": "Order.Update",
+                "user_name": "Alice Novakova",
+                "origin": "admin",
+                "changes": [
+                    {
+                        "name": "delivery address",
+                        "before": "Old Street 1",
+                        "after": "New Street 2",
+                    },
+                    {
+                        "name": "phone",
+                        "before": "+420777111222",
+                        "after": "+420777333444",
+                    },
+                ],
+                "data": [
+                    {"name": "address", "value": "Secret Street 3"},
+                    {"name": "email", "value": "alice@example.test"},
+                ],
+            }
+        ]
+    }
+    _patch(monkeypatch, response)
+    with testing.with_context({"api_key": "k"}, _CFG, sub="shop-1"):
+        out = server.get_order_history("ORDER-1")
+
+    raw = repr(out)
+    for secret in (
+        "Alice Novakova",
+        "Old Street 1",
+        "New Street 2",
+        "Secret Street 3",
+        "+420777111222",
+        "+420777333444",
+        "alice@example.test",
+    ):
+        assert secret not in raw
+    item = out["history"][0]
+    assert item["event"] == "Order.Update"
+    assert item["origin"] == "admin"
+    assert item["changes"][0]["name"] == "delivery address"
+    assert item["changes"][0]["before"].startswith("<HISTORY_")
+    assert item["changes"][0]["after"].startswith("<HISTORY_")
+    assert item["data"][0]["name"] == "address"
+    assert item["data"][0]["value"].startswith("<HISTORY_")
+    assert item["user_name"].startswith("<NAME_")
+
+
+def test_webhook_urls_never_expose_credentials(monkeypatch):
+    response = {
+        "webhooks": [
+            {
+                "id": 7,
+                "active_yn": True,
+                "name": "private endpoint",
+                "url": "https://user:secret@hooks.example/path?token=abc",
+                "event": "Orders.Update",
+            }
+        ]
+    }
+    _patch(monkeypatch, response)
+    with testing.with_context({"api_key": "k"}, _CFG, sub="shop-1"):
+        out = server.list_webhooks()
+
+    webhook = out["webhooks"][0]
+    assert webhook["url"].startswith("<URL_")
+    assert "user" not in webhook["url"]
+    assert "secret" not in repr(out)
+    assert "token=abc" not in repr(out)
+    assert webhook["id"] == 7
+    assert webhook["active_yn"] is True
+    assert webhook["event"] == "Orders.Update"
+
+
 def test_list_products_not_anonymized_and_optimized(monkeypatch):
     page = {"products": [{"code": "P1", "descriptions": [{"title": "Boty"}], "product_id": 9}]}
     _patch(monkeypatch, page)

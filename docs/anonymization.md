@@ -1,102 +1,52 @@
-# GDPR Anonymizace zákaznických dat
+# Povinná pseudonymizace zákaznických dat
 
-Server podporuje automatickou anonymizaci citlivých zákaznických údajů pro ochranu soukromí a splnění GDPR.
+Konektor chrání osobní a přístupové údaje před každou odpovědí AI klientovi.
+Ochrana je povinná a nelze ji vypnout konfiguračním přepínačem.
 
-## Zapnutí anonymizace
+## Formát a stabilita tokenů
 
-```bash
-UPGATES_ANONYMIZE_DATA=true
-```
+Chráněná hodnota se nahradí stabilním jednosměrným tokenem, například
+`<EMAIL_3f9c1a2b4d5e>`, `<PHONE_…>`, `<NAME_…>` nebo `<ADDR_…>`.
+Stejná hodnota ve stejném zákaznickém kontextu vytvoří stejný token, takže lze
+záznamy porovnávat bez zpřístupnění původní hodnoty. Token nelze dešifrovat a
+konektor nevytváří re-identifikační mapu.
 
-## Co se anonymizuje (40+ polí)
+`OPENMCP_PII_SALT` je povinné provozní tajemství. Bez něj runtime záměrně
+nenastartuje; tichý náhodný fallback by po restartu měnil tokeny.
 
-### Zákaznické údaje
-- E-mail: `email`, `customer_email`
-- Telefon: `phone`, `phoneNumber`, `fax`
-- Jména: `firstname`, `surname`, `customer_name`, `nickname`
-- Fakturační jména: `firstname_invoice`, `surname_invoice`
-- Poštovní jména: `firstname_postal`, `surname_postal`
-- Společnost: `company`, `company_name`, `company_postal`
+## Co se chrání
 
-### Adresy
-- Ulice: `street`, `street_invoice`, `street_postal`
-- Město: `city`, `city_invoice`, `city_postal`
-- Kraj/stát: `state`, `state_invoice`, `state_postal`
-- PSČ: `zip`, `zip_invoice`, `zip_postal`, `zip_code`
+- e-maily, telefony a kontaktní údaje;
+- osobní jména a adresy;
+- firemní identifikátory IČO/DIČ a bankovní spojení;
+- zákaznické kódy a citlivé poznámky;
+- jméno uživatele a dynamické hodnoty `before`, `after` a `value` v historii
+  objednávky;
+- cílové URL webhooků, protože mohou obsahovat uživatelské jméno, heslo nebo
+  token v query parametru.
 
-### Firemní identifikátory
-- České/slovenské identifikátory: `ico`, `dic`
-- Mezinárodní: `company_number`, `vat_number`
-- Bankovní údaje: `iban`, `swift`, `bank_account`, `account_number`
+Pole historie mají obecné názvy a mohou obsahovat libovolná zákaznická data.
+Proto se dynamické hodnoty tokenizují fail-closed kategorií `<HISTORY_…>`,
+i když by konkrétní hodnota mohla být neosobní. Technická pole jako událost,
+původ a čas zůstávají čitelná.
 
-### Ostatní citlivá data
-- Poznámky: `customer_note`, `internal_note`, `note`
-- Osobní údaje: `degree`, `salutation`, `declension`
-- Symboly: `variable_symbol`, `specific_symbol`
-- Kódy: `code`, `customer_code`
+## Chráněné nástroje
 
-Plus jakékoliv pole obsahující: name, email, phone, address, street, city, zip
+- `list_orders`
+- `get_order_history`
+- `list_invoices`
+- `list_customers`
+- `list_carts`
+- `get_shop_owner`
+- `list_webhooks`
 
-## Příklad
+Volný text se navíc kontroluje na e-mailové adresy, telefonní čísla a URL.
+Katalogová data, například kód produktu, cena nebo kategorie, zůstávají
+čitelná, pokud nejsou součástí výše uvedené citlivé semistrukturované hodnoty.
 
-### Bez anonymizace
-```json
-{
-  "customer": {
-    "email": "jan.novak@example.com",
-    "phone": "+420123456789",
-    "firstname_invoice": "Jan",
-    "surname_invoice": "Novák",
-    "street_invoice": "Hlavní 123",
-    "city_invoice": "Praha",
-    "zip_invoice": "12000",
-    "company": "Test s.r.o.",
-    "ico": "12345678",
-    "dic": "CZ12345678"
-  }
-}
-```
+## Provozní hranice
 
-### S anonymizací
-```json
-{
-  "customer": {
-    "email": "***ANONYMIZED***",
-    "phone": "***ANONYMIZED***",
-    "firstname_invoice": "***ANONYMIZED***",
-    "surname_invoice": "***ANONYMIZED***",
-    "street_invoice": "***ANONYMIZED***",
-    "city_invoice": "***ANONYMIZED***",
-    "zip_invoice": "***ANONYMIZED***",
-    "company": "***ANONYMIZED***",
-    "ico": "***ANONYMIZED***",
-    "dic": "***ANONYMIZED***"
-  }
-}
-```
-
-Necitlivá pole (order_number, product_id, price, status) zůstávají nezměněná.
-
-## Které endpointy anonymizují
-
-- `list_orders` - Zákaznická data v objednávkách
-- `get_order_history` - Historie může obsahovat zákaznická data
-- `list_invoices` - Fakturační údaje zákazníků
-- `list_customers` - Všechna osobní data (PII)
-- `list_carts` - Údaje v košících
-- `get_shop_owner` - Údaje majitele shopu
-
-## Technické detaily
-
-- **Hloubková anonymizace**: Rekurzivně prochází vnořené objekty a pole
-- **Zachování null hodnot**: Zachovává `null`, `undefined` a prázdné řetězce
-- **Nedestruktivní**: Vytváří hlubokou kopii, nemění originál
-- **Shoda podle vzoru**: Zachytává pole podle jména i klíčových slov
-
-## Případy použití
-
-- **Shoda s GDPR**: Ochrana PII v logách a debugging
-- **Vývoj a testování**: Práce s produkčními daty bezpečně
-- **Školení a demo**: Použití reálné struktury dat bez obav o soukromí
-- **Analytika**: Analýza vzorců bez ukládání osobních dat
-- **Sdílená prostředí**: Více vývojářů může přistupovat k datům bezpečně
+Pseudonymizace probíhá uvnitř konektoru před sestavením MCP odpovědi.
+Upstream Upgates API přirozeně vrací původní data; do logů ani odpovědi AI
+klientovi se nesmí zapisovat v otevřené podobě. Pro další omezení rozsahu
+udělte API uživateli v administraci Upgates pouze potřebná čtecí oprávnění.

@@ -16,7 +16,7 @@ credentials:
     type: string
     secret: false
     required: true
-    hint: "Přesná URL z administrace Upgates, např. https://vas-eshop.admin.server.upgates.com/api/v2"
+    hint: "Přesná URL z administrace Upgates, např. https://vas-eshop.admin.s17.upgates.com/api/v2"
   - key: api_login
     label: API login
     type: string
@@ -53,7 +53,7 @@ display:
     - name: list_orders
       description: "Seznam objednávek s filtry a stránkováním — zákaznická data jsou pseudonymizována"
     - name: get_order_history
-      description: "Historie konkrétní objednávky"
+      description: "Historie objednávky — jméno uživatele a dynamické hodnoty změn jsou pseudonymizované"
     - name: list_order_statuses
       description: "Seznam stavů objednávek"
     - name: list_invoices
@@ -83,7 +83,7 @@ display:
     - name: list_payments
       description: "Seznam platebních metod"
     - name: list_webhooks
-      description: "Seznam nakonfigurovaných webhooků"
+      description: "Seznam webhooků — cílové URL včetně případných přihlašovacích údajů jsou tokenizované"
     - name: list_webhook_events
       description: "Seznam dostupných webhook událostí"
     - name: get_languages
@@ -115,7 +115,7 @@ display:
         - { key: api_key, label: "API klíč" }
       tools:
         - { name: list_orders, description: "Objednávky s filtry a pseudonymizovanými zákaznickými údaji" }
-        - { name: get_order_history, description: "Historie konkrétní objednávky" }
+        - { name: get_order_history, description: "Historie objednávky s chráněnými uživateli a hodnotami změn" }
         - { name: list_order_statuses, description: "Stavy objednávek" }
         - { name: list_invoices, description: "Faktury s chráněnými zákaznickými údaji" }
         - { name: list_products, description: "Produkty s filtry a stránkováním" }
@@ -130,7 +130,7 @@ display:
         - { name: list_vouchers, description: "Slevové kupóny" }
         - { name: list_shipments, description: "Způsoby dopravy" }
         - { name: list_payments, description: "Platební metody" }
-        - { name: list_webhooks, description: "Nakonfigurované webhooky" }
+        - { name: list_webhooks, description: "Nakonfigurované webhooky s tokenizovanými cílovými URL" }
         - { name: list_webhook_events, description: "Dostupné webhook události" }
         - { name: get_languages, description: "Jazyky e-shopu" }
         - { name: get_shop_config, description: "Konfigurace a nastavení e-shopu" }
@@ -157,7 +157,7 @@ display:
         - { key: api_key, label: "API kľúč" }
       tools:
         - { name: list_orders, description: "Objednávky s filtrami a pseudonymizovanými zákazníckymi údajmi" }
-        - { name: get_order_history, description: "História konkrétnej objednávky" }
+        - { name: get_order_history, description: "História objednávky s chránenými používateľmi a hodnotami zmien" }
         - { name: list_order_statuses, description: "Stavy objednávok" }
         - { name: list_invoices, description: "Faktúry s chránenými zákazníckymi údajmi" }
         - { name: list_products, description: "Produkty s filtrami a stránkovaním" }
@@ -172,7 +172,7 @@ display:
         - { name: list_vouchers, description: "Zľavové kupóny" }
         - { name: list_shipments, description: "Spôsoby dopravy" }
         - { name: list_payments, description: "Platobné metódy" }
-        - { name: list_webhooks, description: "Nakonfigurované webhooky" }
+        - { name: list_webhooks, description: "Nakonfigurované webhooky s tokenizovanými cieľovými URL" }
         - { name: list_webhook_events, description: "Dostupné webhook udalosti" }
         - { name: get_languages, description: "Jazyky e-shopu" }
         - { name: get_shop_config, description: "Konfigurácia a nastavenia e-shopu" }

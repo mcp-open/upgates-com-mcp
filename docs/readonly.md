@@ -1,49 +1,36 @@
 # Read-only režim
 
-Konektor je **výhradně čtecí**. Nemá jediný zapisovací nástroj a
-`egress.methods` v `connector.yaml` povoluje jen `GET`, takže zápis
-neprojde ani přes síťovou politiku.
+Hostovaná varianta konektoru je výhradně čtecí. Registruje 23 nástrojů typu
+`list_*` a `get_*`; žádný nástroj pro vytvoření, změnu nebo smazání dat není
+implementovaný.
 
-> Předchozí verze tohoto dokumentu popisovala proměnnou `UPGATES_READONLY`
-> a blokování nástrojů jako `create_order`. Obojí pocházelo z původní
-> TypeScript implementace: ta proměnná **nic nedělá** a ty nástroje
-> v Python konektoru neexistují.
+## Jak je zápis omezen
 
-## Jak je to vynuceno
-
-Ne „aplikační vrstvou" v kódu konektoru, ale **SDK filtrem při startu**.
-Každý nástroj má anotaci `readOnlyHint`; když je read-only režim zapnutý,
-`run_connector` fail-closed odregistruje vše, co `readOnlyHint=True` nemá.
-Nástroj se tedy k modelu vůbec nedostane — nejde o kontrolu při volání.
-
-Tři nezávislé vrstvy:
-
-| Vrstva | Co brání zápisu |
+| Vrstva | Co prosazuje |
 |---|---|
-| Konektor | žádný zapisovací nástroj není implementován |
-| SDK | read-only filtr odregistruje neanotované nástroje při startu |
-| Síť | `egress.methods: [GET]` → NetworkPolicy jiné metody zablokuje |
+| Konektor | implementuje pouze čtecí nástroje a každý označuje `readOnlyHint=true` |
+| Manifest | deklaruje `supports_write: false`, výchozí read-only režim a pouze metodu `GET` |
+| Runtime | SDK při startu fail-closed odmítne nástroj bez správné read-only anotace |
+| Síť | Kubernetes NetworkPolicy omezuje cíle a porty, nikoli HTTP metody |
+| Upgates účet | doporučený čtecí účet omezuje škodu i při chybě jiné vrstvy |
 
-Navíc se doporučuje dát API uživateli v Upgates adminu jen čtecí
-oprávnění — konektor se na to nespoléhá, ale je to levná čtvrtá vrstva.
+`egress.methods: [GET]` je aplikační kontrakt manifestu. Běžná Kubernetes
+NetworkPolicy pracuje na L3/L4 a sama nerozlišuje `GET`, `POST` nebo `DELETE`;
+proto se ochrana nesmí opírat jen o síťovou politiku.
 
-## Přepínač
+## Konfigurace
 
-`read_only` **není** v `operator_config`, takže SDK použije fallback na
-proměnnou prostředí:
+Read-only chování ani pseudonymizace nemají uživatelský vypínač.
+Staré proměnné `UPGATES_READONLY`, `UPGATES_READ_ONLY` a
+`UPGATES_ANONYMIZE_DATA` nejsou součástí aktuálního kontraktu a nemají se
+uvádět v konfiguraci.
 
-```bash
-UPGATES_READ_ONLY=true    # pozor: READ_ONLY s podtržítkem
-```
-
-Výchozí hodnota je `true` (`capabilities.default_read_only`). Vypnutí
-nemá u tohoto konektoru efekt — žádný zapisovací nástroj neexistuje, takže
-filtr nemá co pustit navíc.
-
-## Doporučená konfigurace
+Pro lokální `stdio` režim stačí přístupové údaje, provozní mód a povinný salt:
 
 ```bash
-UPGATES_READ_ONLY=true         # ochrana proti změnám
-UPGATES_ANONYMIZE_DATA=true    # ochrana zákaznických dat (GDPR)
-OPENMCP_PII_SALT=…             # povinné, jinak konektor nenastartuje
+OPENMCP_MODE=local-stdio
+UPGATES_API_URL=https://vas-eshop.admin.s17.upgates.com/api/v2
+UPGATES_API_LOGIN=api-login
+UPGATES_API_KEY=api-klic
+OPENMCP_PII_SALT=…
 ```

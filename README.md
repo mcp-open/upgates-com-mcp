@@ -16,7 +16,7 @@ Součást platformy [OpenMCP.cz](https://openmcp.cz).
 python -m venv .venv && . .venv/bin/activate
 pip install -e ../openmcp-sdk -e .
 export OPENMCP_MODE=local-stdio
-export UPGATES_API_URL="https://vas-eshop.admin.server.upgates.com/api/v2"
+export UPGATES_API_URL="https://vas-eshop.admin.s17.upgates.com/api/v2"
 export UPGATES_API_LOGIN="api-login"
 export UPGATES_API_KEY="api-klic"
 export OPENMCP_PII_SALT="$(openssl rand -hex 32)"

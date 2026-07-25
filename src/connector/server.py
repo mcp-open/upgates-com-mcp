@@ -34,11 +34,11 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from openmcp_sdk import ConnectorError, ErrorCode, current_context
-from openmcp_sdk.http import UpstreamClient
-from openmcp_sdk.pii import Pseudonymizer, derive_key
+from openmcp_sdk.http import UpstreamClient, encode_segment
+from openmcp_sdk.pii import PiiPolicy, Pseudonymizer, derive_key
 
 from connector.optimizers import optimize_list_response
-from connector.pii_fields import POLICY
+from connector.pii_fields import HISTORY_POLICY, POLICY, WEBHOOK_POLICY
 from connector.validators import validate_date_range, validate_page
 
 logger = logging.getLogger(__name__)
@@ -125,20 +125,13 @@ def _client() -> UpstreamClient:
     )
 
 
-def _pseudonymizer() -> Pseudonymizer:
-    return Pseudonymizer(derive_key(current_context().principal.sub), POLICY)
+def _pseudonymizer(policy: PiiPolicy = POLICY) -> Pseudonymizer:
+    return Pseudonymizer(derive_key(current_context().principal.sub), policy)
 
 
 def _path_segment(value: int | str, label: str) -> str:
-    """Znormalizuj LLM-dodané ID na bezpečný segment cesty (percent-encoding).
-
-    Zneškodní `/`, `?`, `#`, `..` — hodnota nikdy nemůže změnit cílový endpoint
-    (path injection).
-    """
-    text = str(value).strip()
-    if not text:
-        raise ConnectorError(ErrorCode.INVALID_INPUT, f"{label} nesmí být prázdné.")
-    return urllib.parse.quote(text, safe="")
+    """Znormalizuj LLM-dodané ID na bezpečný segment cesty."""
+    return encode_segment(value, label)
 
 
 def _unwrap(body: Any) -> Any:
@@ -158,6 +151,7 @@ def _get(
     *,
     optimize: str | None = None,
     anonymize: bool = False,
+    pii_policy: PiiPolicy = POLICY,
 ) -> Any:
     """GET jednoho endpointu + (volitelně) optimalizace a pseudonymizace.
 
@@ -174,7 +168,7 @@ def _get(
     if optimize is not None:
         data = optimize_list_response(data, optimize)
     if anonymize:
-        data = _pseudonymizer().sanitize(data)
+        data = _pseudonymizer(pii_policy).sanitize(data)
     return data
 
 
@@ -222,9 +216,9 @@ def list_orders(
 def get_order_history(
     order_number: Annotated[str, Field(description="Číslo objednávky")],
 ) -> Any:
-    """Historie konkrétní objednávky. Data zákazníka jsou pseudonymizována."""
+    """Historie objednávky s fail-closed tokenizací změněných hodnot."""
     path = f"/orders/{_path_segment(order_number, 'order_number')}/history"
-    return _get(path, anonymize=True)
+    return _get(path, anonymize=True, pii_policy=HISTORY_POLICY)
 
 
 # =============================================================================
@@ -484,9 +478,9 @@ def list_payments(
 def list_webhooks(
     id: Annotated[int | None, Field(description="Konkrétní ID webhooku")] = None,
 ) -> Any:
-    """Seznam nakonfigurovaných webhooků."""
+    """Seznam webhooků; cílové URL se vždy vracejí jen jako stabilní token."""
     endpoint = f"/webhooks/{_path_segment(id, 'id')}" if id else "/webhooks"
-    return _get(endpoint)
+    return _get(endpoint, anonymize=True, pii_policy=WEBHOOK_POLICY)
 
 
 def list_webhook_events() -> Any:
