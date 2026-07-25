@@ -9,9 +9,18 @@ description = "Upgates e-shop API (v2) MCP konektor nad openmcp_sdk — port upg
 requires-python = ">=3.12"
 dependencies = [
   "openmcp-sdk>=0.4,<0.5",
-  "fastmcp>=2.11,<3",
+  "fastmcp>=3.2,<4",
   "pydantic>=2.6,<3",
   "httpx>=0.28,<0.29",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest==9.0.3",
+  "pyyaml==6.0.2",
+  "anyio>=4,<6",
+  "ruff==0.15.22",
+  "mypy==1.20.2",
 ]
 
 [tool.setuptools.packages.find]

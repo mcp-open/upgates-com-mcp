@@ -28,10 +28,7 @@ def test_manifest_loads_and_validates() -> None:
     for key in ("api_url", "api_login"):
         assert next(f for f in manifest.credentials if f.key == key).secret is False
 
-    operator_keys = {f.key for f in manifest.operator_config}
-    assert operator_keys == {"anonymize_data"}
-    anon = next(f for f in manifest.operator_config if f.key == "anonymize_data")
-    assert anon.type == "bool" and anon.default is True
+    assert manifest.operator_config == []
 
     assert manifest.egress["port"] == 443
     assert manifest.egress["methods"] == ["GET"]
@@ -43,5 +40,5 @@ def test_display_tools_match_registered_tools() -> None:
 
     manifest = load_manifest(str(MANIFEST_PATH))
     display_names = {t.name for t in manifest.display.tools}
-    registered = set(asyncio.run(server.mcp.get_tools()))
+    registered = {tool.name for tool in asyncio.run(server.mcp.list_tools())}
     assert display_names == registered

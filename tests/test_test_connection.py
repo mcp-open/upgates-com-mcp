@@ -9,7 +9,10 @@ from openmcp_sdk.envelope import ConnectorError, ErrorCode
 
 from connector import server
 
-_CFG = {"api_url": "https://acme.admin.upgates.com/api/v2", "api_login": "u"}
+_CFG = {
+    "api_url": "https://acme.admin.server.upgates.com/api/v2",
+    "api_login": "u",
+}
 
 
 class _Fake:

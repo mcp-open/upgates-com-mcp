@@ -15,15 +15,16 @@ zdroj identity/credentials:
 - Každý nástroj zůstává plain funkcí (ne `@mcp.tool` dekorátor přímo), aby ho
   unit testy mohly zavolat přímo; registrace níže (`mcp.tool(fn, annotations=…)`)
   ho přihlásí jako MCP nástroj s `readOnlyHint=True`.
-- GDPR pseudonymizace (`openmcp_sdk.pii.Pseudonymizer` + `connector.pii_fields.POLICY`) je gated
-  operátorským přepínačem `current_context().config.get("anonymize_data", True)`
-  (default zapnuto). Aplikuje se — stejně jako v TS — na nástroje nesoucí
-  zákaznická data (objednávky, faktury, zákazníci, košíky, provozovatel).
+- GDPR pseudonymizace (`openmcp_sdk.pii.Pseudonymizer` +
+  `connector.pii_fields.POLICY`) je povinná bezpečnostní hranice. Aplikuje se
+  na nástroje nesoucí zákaznická data (objednávky, faktury, zákazníci, košíky,
+  provozovatel) a operátorská konfigurace ji nemůže vypnout.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 import urllib.parse
 from datetime import date, timedelta
 from typing import Annotated, Any
@@ -67,6 +68,13 @@ _D_DATE_TO = Field(description="Filtrovat do tohoto data (YYYY-MM-DD)")
 # =============================================================================
 # Klient + společná cesta požadavku
 # =============================================================================
+_DNS_LABEL = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+_UPGATES_API_HOST = re.compile(
+    rf"{_DNS_LABEL}\.admin\.{_DNS_LABEL}\.upgates\.com",
+    re.ASCII,
+)
+
+
 def _validated_api_url(raw: object) -> str:
     """Bind Basic credentials to the exact Upgates HTTPS origin family.
 
@@ -87,8 +95,7 @@ def _validated_api_url(raw: object) -> str:
     hostname = (parsed.hostname or "").lower()
     if (
         parsed.scheme != "https"
-        or not hostname.endswith(".admin.upgates.com")
-        or hostname == "admin.upgates.com"
+        or _UPGATES_API_HOST.fullmatch(hostname) is None
         or port not in (None, 443)
         or parsed.username is not None
         or parsed.password is not None
@@ -98,7 +105,8 @@ def _validated_api_url(raw: object) -> str:
     ):
         raise ConnectorError(
             ErrorCode.INVALID_INPUT,
-            "URL musí být HTTPS adresa e-shopu *.admin.upgates.com s cestou /api/v2.",
+            "URL musí být HTTPS adresa e-shopu "
+            "<eshop>.admin.<server>.upgates.com s cestou /api/v2.",
         )
     return f"https://{hostname}{f':{port}' if port is not None else ''}/api/v2"
 
@@ -115,10 +123,6 @@ def _client() -> UpstreamClient:
         base_url=_validated_api_url(ctx.config["api_url"]),
         auth=(ctx.config["api_login"], ctx.secrets["api_key"]),
     )
-
-
-def _anon_enabled() -> bool:
-    return bool(current_context().config.get("anonymize_data", True))
 
 
 def _pseudonymizer() -> Pseudonymizer:
@@ -169,7 +173,7 @@ def _get(
     data = _unwrap(body)
     if optimize is not None:
         data = optimize_list_response(data, optimize)
-    if anonymize and _anon_enabled():
+    if anonymize:
         data = _pseudonymizer().sanitize(data)
     return data
 
