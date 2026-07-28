@@ -1,0 +1,20 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Bezpečnostní zranitelnost
+    url: https://github.com/mcp-open/upgates-com-mcp/blob/main/SECURITY.md
+    about: Zranitelnosti nikdy nehlaste veřejným issue — pošlete je na security@openmcp.cz
+  - name: 📚 Dokumentace
+    url: https://github.com/mcp-open/upgates-com-mcp/blob/main/README.md
+    about: Přečtěte si dokumentaci před vytvořením issue
+  - name: 💬 Diskuze
+    url: https://github.com/mcp-open/upgates-com-mcp/discussions
+    about: Máte otázku? Zahajte diskuzi
+  - name: 🎮 Upgates Discord
+    url: https://discord.gg/6X7VbMEVjk
+    about: Vývojářská komunita kolem Upgates API
+  - name: 📖 Upgates API dokumentace
+    url: https://upgatesapiv2.docs.apiary.io/
+    about: Oficiální dokumentace Upgates API v2
+  - name: 🌐 OpenMCP
+    url: https://openmcp.cz
+    about: Platforma OpenMCP — hostované konektory, účty a podpora

@@ -1,0 +1,192 @@
+name: 🚀 Vylepšení / Improvement
+description: Navrhněte vylepšení existující funkcionality
+title: "[IMPROVEMENT]: "
+labels: ["enhancement", "improvement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Děkujeme za váš návrh na vylepšení! Popište, co by se mělo zlepšit.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Oblast vylepšení
+      description: Čeho se vylepšení týká?
+      options:
+        - Výkon / Performance
+        - Dokumentace
+        - Chybové hlášení / Error messages
+        - API design
+        - Uživatelská přívětivost (UX)
+        - Kvalita kódu
+        - Testování
+        - Bezpečnost
+        - Anonymizace dat
+        - Detail módy
+        - Filtrování
+        - Export dat
+        - Logování
+        - Konfigurace
+        - Jiné
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Současný stav
+      description: Jak to funguje teď?
+      placeholder: |
+        Momentálně když...
+        Nástroj XYZ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Navrhované vylepšení
+      description: Jak by to mělo fungovat po vylepšení?
+      placeholder: |
+        Bylo by lepší, kdyby...
+        Návrh: změnit XYZ na...
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Přínosy vylepšení
+      description: Proč je toto vylepšení důležité?
+      placeholder: |
+        - Zrychlí to...
+        - Zpřehlední to...
+        - Sníží to spotřebu...
+        - Vylepší to uživatelský zážitek...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Dopad na uživatele
+      description: Koho vylepšení ovlivní?
+      multiple: true
+      options:
+        - Všechny uživatele
+        - E-shop majitele
+        - E-commerce manažery
+        - Vývojáře integrací
+        - AI/LLM použití
+        - Pokročilé uživatele
+        - Začátečníky
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Breaking change?
+      description: Způsobí vylepšení nekompatibilitu s předchozími verzemi?
+      options:
+        - Ne - zpětně kompatibilní
+        - Ano - bude potřeba aktualizovat konfiguraci
+        - Ano - změní se API
+        - Nejsem si jistý/á
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Příklad použití
+      description: Ukažte konkrétní příklad před a po
+      placeholder: |
+        PŘED:
+        ```json
+        { "detail": "full", "includeItems": true }
+        ```
+
+        PO vylepšení:
+        ```json
+        { "detail": "audit-fast" }  // automaticky includes items
+        ```
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Návrh implementace (volitelné)
+      description: Máte nápad, jak by se to mělo implementovat?
+      placeholder: |
+        Mohlo by se to udělat tak, že...
+        Místo X použít Y...
+
+  - type: input
+    id: related-tool
+    attributes:
+      label: Související nástroj/funkce
+      description: Které části projektu se vylepšení týká?
+      placeholder: např. list_orders, token optimization, anonymizace
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Zvažované alternativy
+      description: Uvažovali jste o jiných způsobech vylepšení?
+      placeholder: |
+        Alternativně by se mohlo...
+        Místo toho jsem zvažoval/a...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorita (váš názor)
+      description: Jak naléhavé je toto vylepšení?
+      options:
+        - Kritická - blokuje používání
+        - Vysoká - významně by pomohlo
+        - Střední - bylo by to příjemné
+        - Nízká - drobné vylepšení
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Metriky úspěchu
+      description: Jak poznáme, že vylepšení je úspěšné?
+      placeholder: |
+        - Zrychlení o X%
+        - Snížení spotřeby tokenů o Y%
+        - Pozitivní feedback od Z uživatelů
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Další kontext
+      description: Další informace, odkazy, screenshots...
+      placeholder: |
+        Související issues: #123
+        Benchmark výsledky...
+        Příklady z jiných projektů...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Ochota přispět
+      options:
+        - label: Mohu pomoci s implementací
+          required: false
+        - label: Mohu pomoci s testováním
+          required: false
+        - label: Mohu pomoci s dokumentací
+          required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Kontrolní seznam
+      options:
+        - label: Zkontroloval/a jsem existující issues
+          required: true
+        - label: Vylepšení je v souladu s cíli projektu
+          required: true

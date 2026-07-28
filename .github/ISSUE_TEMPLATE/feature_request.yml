@@ -1,0 +1,159 @@
+name: ✨ Nová funkce / Feature Request
+description: Navrhněte novou funkci pro Upgates MCP server
+title: "[FEATURE]: "
+labels: ["enhancement", "feature-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Děkujeme za váš návrh! Popište prosím, jakou novou funkci byste chtěli vidět.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Jaký problém řešíte?
+      description: Popište problém nebo potřebu, kterou tato funkce řeší
+      placeholder: |
+        Jsem frustrovaný, když...
+        Potřebuji...
+        Bylo by skvělé, kdyby...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Navrhované řešení
+      description: Jak by podle vás měla funkce fungovat?
+      placeholder: |
+        Funkce by měla...
+        Například: Nový nástroj `faktura-prijata` pro příjaté faktury...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Kategorie funkce
+      description: Do jaké kategorie vaše funkce spadá?
+      options:
+        - Nový nástroj (tool)
+        - Nový Upgates API endpoint
+        - Rozšíření existujícího nástroje
+        - Filtrování a dotazování
+        - Export a reporting
+        - Webhook management
+        - Anonymizace a bezpečnost
+        - Token optimization
+        - Integrace s jinými systémy
+        - Dokumentace
+        - Jiné
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorita (váš názor)
+      description: Jak důležitá je pro vás tato funkce?
+      options:
+        - Kritická - bez toho nemohu nástroj používat
+        - Vysoká - velmi by mi to pomohlo
+        - Střední - bylo by to užitečné
+        - Nízká - nice to have
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Příklad použití
+      description: Uveďte konkrétní příklad, jak byste funkci používali
+      placeholder: |
+        Jako účetní bych chtěl...
+        Například: "Zkontroluj všechny příjaté faktury za Q1 2025 na duplicity"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativní řešení
+      description: Uvažovali jste o jiných řešeních nebo workarounds?
+      placeholder: |
+        Momentálně to řeším tak, že...
+        Alternativně by se mohlo...
+
+  - type: textarea
+    id: api-design
+    attributes:
+      label: Návrh API/rozhraní (volitelné)
+      description: Pokud máte představu, jak by mělo API vypadat
+      render: typescript
+      placeholder: |
+        {
+          "tool": "nova-funkce",
+          "parameters": {
+            "filter": "...",
+            "detail": "compact"
+          }
+        }
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Přínosy
+      description: Jak tato funkce pomůže vám nebo komunitě?
+      placeholder: |
+        - Ušetří čas při...
+        - Zjednoduší proces...
+        - Umožní nové use-cases...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: target-users
+    attributes:
+      label: Pro koho je funkce určena?
+      description: Kdo by funkci nejvíce využil?
+      multiple: true
+      options:
+        - E-shop majitelé
+        - E-commerce manažeři
+        - Skladníci
+        - Marketing týmy
+        - Zákaznický servis
+        - Vývojáři integrací
+        - Software houses
+        - Všichni uživatelé
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Další kontext
+      description: Přidejte jakékoliv další informace, screenshots, odkazy...
+      placeholder: |
+        Odkazy na podobné funkce v jiných nástrojích...
+        Screenshots očekávaného výstupu...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Ochota přispět
+      options:
+        - label: Jsem ochoten/ochotna pomoci s implementací této funkce
+          required: false
+        - label: Mohu poskytnout testovací data
+          required: false
+        - label: Mohu poskytnout zpětnou vazbu během vývoje
+          required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Kontrolní seznam
+      options:
+        - label: Zkontroloval/a jsem existující issues a tato funkce ještě nebyla navržena
+          required: true
+        - label: Tato funkce zapadá do scope projektu (Upgates e-shop API integrace)
+          required: true

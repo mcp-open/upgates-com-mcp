@@ -1,0 +1,142 @@
+name: 🐛 Nahlásit chybu / Bug Report
+description: Nahlaste chybu nebo problém v Upgates MCP serveru
+title: "[BUG]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Děkujeme za nahlášení chyby! Vyplňte prosím následující informace.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Popis problému
+      description: Popište jasně a stručně, co se pokazilo.
+      placeholder: Co se stalo? Co jste očekávali?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Kroky k reprodukci
+      description: Jak můžeme problém zopakovat?
+      placeholder: |
+        1. Spusťte příkaz '...'
+        2. Použijte nástroj '...'
+        3. Zadejte parametry '...'
+        4. Vidíte chybu...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Očekávané chování
+      description: Co jste očekávali, že se stane?
+      placeholder: Popište očekávané chování
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Aktuální chování
+      description: Co se stalo místo toho?
+      placeholder: Popište aktuální (nesprávné) chování
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Chybové hlášení / Logy
+      description: Zkopírujte a vložte relevantní chybové hlášení nebo logy
+      render: shell
+      placeholder: |
+        Error: Failed to fetch invoices
+        at fetchInvoices (index.ts:123)
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Který nástroj způsobuje problém?
+      options:
+        - list_orders
+        - list_products
+        - list_customers
+        - list_invoices
+        - list_categories
+        - list_payments
+        - list_shipments
+        - create_order
+        - update_orders
+        - Jiný (upřesním v popisu)
+        - Nevím
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Verze Upgates MCP Server
+      description: Jakou verzi serveru používáte?
+      placeholder: např. 0.1.0
+    validations:
+      required: false
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Verze Node.js
+      description: Jakou verzi Node.js používáte? (spusťte `node --version`)
+      placeholder: např. v18.17.0
+    validations:
+      required: false
+
+  - type: input
+    id: upgates-plan
+    attributes:
+      label: Upgates tarif
+      description: Jaký tarif Upgates e-shopu používáte?
+      placeholder: např. Gold, Platinum
+    validations:
+      required: false
+
+  - type: dropdown
+    id: client
+    attributes:
+      label: MCP klient
+      description: Který MCP klient používáte?
+      options:
+        - Claude Desktop
+        - Jiný (upřesním v popisu)
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Prostředí
+      description: Další informace o vašem prostředí
+      placeholder: |
+        OS: Windows 11 / macOS 14 / Ubuntu 22.04
+        Další relevantní informace...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Další kontext
+      description: Přidejte jakékoliv další informace o problému
+      placeholder: Screenshots, související issues, pokus o řešení...
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Kontrolní seznam
+      options:
+        - label: Zkontroloval/a jsem existující issues a tento problém ještě nebyl nahlášen
+          required: true
+        - label: Použil/a jsem nejnovější verzi MCP serveru
+          required: false

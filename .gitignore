@@ -1,0 +1,104 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build output
+dist/
+build/
+*.js
+*.js.map
+*.d.ts
+!src/**/*.d.ts
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Package manager lock files (optional - uncomment if you don't want to commit lock files)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# MCP specific
+.mcp/
+mcp-logs/
+
+# Cizí API specifikace — Upgates svou dokumentaci nešíří pod licencí, která by
+# nám dovolila redistribuci. Drž si ji lokálně, do repa nepatří.
+dev-docs/*.apib
+dev-docs/*-openapi.json
+dev-docs/vendor/
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Archives
+*.zip
+*.tar.gz
+!release/vendor/openmcp-sdk-*.tar.gz
+*.rar
+
+.mcp.json
+.claude
+
+#dev-docs*
+
+# Python (port konektoru na openmcp_sdk)
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/

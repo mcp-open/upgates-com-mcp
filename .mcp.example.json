@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "upgates": {
+      "command": "python",
+      "args": ["-m", "connector"],
+      "cwd": "/absolute/path/to/upgates-com-mcp",
+      "env": {
+        "OPENMCP_MODE": "local-stdio",
+        "UPGATES_API_URL": "https://vas-eshop.admin.s17.upgates.com/api/v2",
+        "UPGATES_API_LOGIN": "api-login",
+        "UPGATES_API_KEY": "api-kluc",
+        "OPENMCP_PII_SALT": "vygeneruj-vlastni-openssl-rand-hex-32"
+      }
+    }
+  }
+}
