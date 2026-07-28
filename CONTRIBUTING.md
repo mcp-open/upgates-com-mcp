@@ -14,21 +14,37 @@ Bezpečnostní problémy nepatří do veřejných issues: `security@openmcp.cz`.
 
 ## Vývojové prostředí
 
+SDK se neinstaluje z PyPI — jméno `openmcp-sdk` tam patří nesouvisejícímu
+projektu. Bere se z gitu podle pinu v `pyproject.toml`, nebo offline
+z vendorovaného snapshotu:
+
 ```bash
 python -m venv .venv && . .venv/bin/activate
-pip install -e ../openmcp-sdk -e '.[test]'
+pip install -e '.[test]'                      # SDK z GitHubu podle pinu
+# nebo bez sítě:
+python release/materialize_sdk.py --root . --output /tmp/openmcp-sdk
+pip install /tmp/openmcp-sdk -e '.[test]'
 export OPENMCP_PII_SALT="$(openssl rand -hex 32)"
 ```
 
 ## Před odesláním změny
 
 ```bash
-python -m pytest tests -q
+ruff check src tests
+mypy src
 openmcp-sdk validate connector.yaml
+python -m pytest tests -q
 ```
 
-Oba musí projít. `validate` ověřuje i invarianty platformy (egress,
-`display.tools`, slug), takže „prošlo" znamená „platforma to přijme".
+Všechny čtyři musí projít — přesně totéž běží v CI. `validate` ověřuje
+i invarianty platformy (egress, `display.tools`, slug), takže „prošlo"
+znamená „platforma to přijme".
+
+## Bump SDK
+
+SDK je připnuté na jeden commit, který musí souhlasit na **třech místech**:
+`pyproject.toml`, `.sdk-ref` a název archivu v `release/vendor/`. Shodu hlídá
+`tests/test_sdk_pin.py`, takže bump znamená změnit všechna tři naráz.
 
 ## Přidání nového nástroje
 
@@ -58,10 +74,16 @@ zdůvodnit v `CHANGELOG.md`.
 ## Konvence
 
 - Výchozí větev je `main`.
+- Komentáře, docstringy i dokumentace jsou **česky**.
+- Záznam v `display.tools` musí pokrývat obě locales (`cs` i `sk`) — manifest
+  bez nich SDK odmítne.
 - Konektor je **pouze pro čtení**. Zapisovací nástroje by znamenaly změnu
   `capabilities.supports_write`, `egress.methods` a potvrzovací vrstvu —
   to je samostatné rozhodnutí, ne běžný PR.
-- Do repozitáře nepatří secrets, `.env` ani produkční logy.
+- Do repozitáře nepatří tajemství, `.env`, produkční logy ani cizí API
+  specifikace.
+
+Zranitelnosti hlaste podle [SECURITY.md](SECURITY.md), nikdy veřejným issue.
 
 ## Historická poznámka
 

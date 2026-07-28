@@ -91,9 +91,12 @@ openmcp-sdk validate connector.yaml
 - [`docs/readonly.md`](docs/readonly.md) — read-only režim
 - [`docs/defaults.md`](docs/defaults.md) — výchozí hodnoty a limity
 - [`docs/tools.md`](docs/tools.md) — nástroje
-- [`dev-docs/upgatesapiv2.apib`](dev-docs/upgatesapiv2.apib) — API specifikace dodavatele
-- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — postup a nároky na změny
+- [`SECURITY.md`](SECURITY.md) — hlášení zranitelností
+
+API specifikaci Upgates repozitář nešíří (viz `.gitignore`); aktuální verzi
+najdete v [dokumentaci Upgates](https://www.upgates.cz/a/upgates-api).
 
 ## Licence
 
-[CC BY-NC 4.0](LICENSE)
+MIT — viz [LICENSE](LICENSE).

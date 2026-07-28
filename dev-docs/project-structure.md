@@ -17,9 +17,13 @@ upgates-com-mcp/
 │   └── validators.py         validace vstupů → ConnectorError(INVALID_INPUT)
 ├── tests/
 ├── docs/                     uživatelská dokumentace
-└── dev-docs/
-    └── upgatesapiv2.apib     API specifikace dodavatele
+└── dev-docs/                 poznámky pro vývoj
 ```
+
+API specifikace dodavatele není součástí repozitáře — je to cizí dokument,
+který nešíříme (viz `.gitignore`). Aktuální verzi najdeš v
+[dokumentaci Upgates](https://upgatesapiv2.docs.apiary.io/); pokud si ji
+stáhneš do `dev-docs/`, ignore pravidlo ji tam nechá, ale git ji nevezme.
 
 ## Pořadí zpracování odpovědi
 

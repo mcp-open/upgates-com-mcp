@@ -72,6 +72,12 @@ desktop.ini
 .mcp/
 mcp-logs/
 
+# Cizí API specifikace — Upgates svou dokumentaci nešíří pod licencí, která by
+# nám dovolila redistribuci. Drž si ji lokálně, do repa nepatří.
+dev-docs/*.apib
+dev-docs/*-openapi.json
+dev-docs/vendor/
+
 # Backup files
 *.backup
 *.bak
