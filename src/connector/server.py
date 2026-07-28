@@ -525,9 +525,13 @@ def test_connection() -> str:
     `_client()` samotný smí spadnout (`ConnectorError` z neplatné URL, `KeyError`
     z chybějícího pole v kontextu) dřív, než stihne cokoliv zavolat — bez
     vlastního try/except by taková chyba unikla jako 500. Klasifikace chyby
-    z `client.get_json()` je strukturovaná přes `ConnectorError.status`: 401/403
-    (neplatný login/klíč) → INVALID_INPUT (uživatel to má šanci opravit),
-    cokoliv jiného (timeout, 5xx, rate limit) → UPSTREAM_UNAVAILABLE. Zprávě se
+    z `client.get_json()` je strukturovaná přes `ConnectorError.status`.
+    `/status` je fixní endpoint bez argumentů, takže každá 4xx na něj mluví
+    o údajích připojení: 401/403 neplatný login nebo klíč, 400 vadný tvar,
+    404/410 e-shop na dané `api_url` neexistuje (typicky překlep v subdoméně
+    nebo zrušený účet). Všechno to jsou trvalé stavy → INVALID_INPUT, ze
+    kterého platforma udělá `credential_invalid`. Jen skutečně dočasné
+    problémy (timeout, 5xx, rate limit) → UPSTREAM_UNAVAILABLE. Zprávě se
     záměrně nepředává syrový `str(exc)` (může nést vendor tělo).
     """
     try:
@@ -538,7 +542,7 @@ def test_connection() -> str:
     try:
         client.get_json("/status")
     except ConnectorError as exc:
-        if exc.status in (401, 403):
+        if exc.status in (400, 401, 403, 404, 410):
             raise ConnectorError(
                 ErrorCode.INVALID_INPUT, "Neplatný API login nebo klíč"
             ) from exc

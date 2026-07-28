@@ -14,13 +14,24 @@ Součást platformy [OpenMCP.cz](https://openmcp.cz).
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
-pip install -e ../openmcp-sdk -e .
+pip install -e .
 export OPENMCP_MODE=local-stdio
 export UPGATES_API_URL="https://vas-eshop.admin.s17.upgates.com/api/v2"
 export UPGATES_API_LOGIN="api-login"
 export UPGATES_API_KEY="api-klic"
 export OPENMCP_PII_SALT="$(openssl rand -hex 32)"
 python -m connector
+```
+
+`pip` si `openmcp-sdk` stáhne z GitHubu podle commitu připnutého
+v `pyproject.toml` — na PyPI SDK není, protože tam jméno patří
+nesouvisejícímu projektu. Bez přístupu k GitHubu (nebo když chcete přesně
+ten snapshot, se kterým se staví produkční image) použijte vendorovaný archiv
+z repozitáře:
+
+```bash
+python release/materialize_sdk.py --root . --output /tmp/openmcp-sdk
+pip install /tmp/openmcp-sdk -e .
 ```
 
 API přístup se zakládá v **Upgates Admin → Doplňky → API**.

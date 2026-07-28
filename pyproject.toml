@@ -7,8 +7,13 @@ name = "upgates-mcp"
 version = "0.2.0"
 description = "Upgates e-shop API (v2) MCP konektor nad openmcp_sdk — port upgates-com-mcp z TypeScriptu (read-only + GDPR anonymizace)."
 requires-python = ">=3.12"
+# openmcp-sdk se nepublikuje na PyPI — jméno tam patří nesouvisejícímu
+# projektu s nejvyšší verzí 0.2.20, takže `pip install` na tomhle balíku
+# selhal a po vydání cizí 0.4.x by nainstaloval cizí kód. Reference míří
+# přímo na commit, který je zároveň v `.sdk-ref` a ve vendorovaném snapshotu
+# v `release/vendor/`; shodu hlídá `tests/test_sdk_pin.py`.
 dependencies = [
-  "openmcp-sdk>=0.4,<0.5",
+  "openmcp-sdk @ git+https://github.com/mcp-open/openmcp-sdk@eedc35a7de7ca61c6823d89a5048f9eff98e78ff",
   "fastmcp>=3.2,<4",
   "pydantic>=2.6,<3",
   "httpx>=0.28,<0.29",

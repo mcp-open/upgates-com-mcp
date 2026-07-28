@@ -47,13 +47,21 @@ def test_connection_invalid_credentials_raises_invalid_input(monkeypatch):
     assert exc.value.message == "Neplatný API login nebo klíč"
 
 
-def test_connection_403_also_invalid_input(monkeypatch):
-    err = ConnectorError(ErrorCode.FORBIDDEN, "upstream odmítl přístup", status=403)
+@pytest.mark.parametrize("status", [400, 403, 404, 410])
+def test_connection_other_client_errors_also_invalid_input(monkeypatch, status):
+    """`/status` nemá argumenty — 4xx na něj vždy mluví o údajích připojení.
+
+    404 dostane e-shop, jehož `api_url` neexistuje (překlep v subdoméně,
+    zrušený účet). Dokud to padalo do UPSTREAM_UNAVAILABLE, platforma to
+    hlásila jako dočasný výpadek a credentials držela jako zdravé.
+    """
+    err = ConnectorError(ErrorCode.INVALID_INPUT, f"upstream odmítl {status}", status=status)
     monkeypatch.setattr(server, "UpstreamClient", lambda **kw: _Fake(error=err))
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
         with pytest.raises(ConnectorError) as exc:
             server.test_connection()
     assert exc.value.code == ErrorCode.INVALID_INPUT
+    assert exc.value.message == "Neplatný API login nebo klíč"
 
 
 def test_connection_network_error_maps_to_upstream_unavailable(monkeypatch):
