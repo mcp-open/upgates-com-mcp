@@ -8,6 +8,15 @@ a tento projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 > Záznamy do verze 0.1.x popisují původní **TypeScript** implementaci.
 > Od 0.2.0 je konektor v Pythonu nad `openmcp-sdk`.
 
+## [0.2.2] — 2026-07-31
+
+### Opravené
+
+- Runtime je připnutý na SDK revizi `88ecbf8a`, která rozlišuje
+  chybějící upstream záznamy (HTTP 404/410) jako `not_found` místo obecného
+  `invalid_input`. Platforma tak může bezpečně poradit, že zadaný záznam
+  neexistuje, aniž by zveřejnila upstream odpověď.
+
 ## [0.2.1] — 2026-07-31
 
 ### Opravené
