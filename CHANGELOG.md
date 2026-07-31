@@ -8,6 +8,80 @@ a tento projekt dodržuje [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 > Záznamy do verze 0.1.x popisují původní **TypeScript** implementaci.
 > Od 0.2.0 je konektor v Pythonu nad `openmcp-sdk`.
 
+## [0.2.1] — 2026-07-31
+
+### Opravené
+
+- **Konektor s lokalizovanou nápovědou k polím vůbec nenaběhl.** Manifest
+  používá `display.locales.*.fields[].hint`, ale pin SDK zůstal na verzi, která
+  ho odmítá jako `extra_forbidden` — `openmcp-sdk validate` i start konektoru
+  padaly na šesti chybách validace. Pin zvednutý na
+  `0d36cf1a93c870fe237ecbe3bee7b52b202df18d` (openmcp-sdk 0.4.3),
+  `sdk_min_version` na `0.4.3`.
+- **Zákaznický e-mail a telefon končily v logu.** `list_orders` a
+  `list_customers` je berou jako filtry v query stringu a httpx loguje celou
+  URL požadavku na úrovni INFO. SDK 0.4.3 httpx ztišuje na WARNING, takže
+  se do strukturovaného stdout logu (a sběrače) dostanou už jen selhání
+  přenosu, ne úspěšné URL.
+- **Detail jednoho záznamu se vracel jako prázdná stránka.** Odpověď, která
+  není stránka seznamu (`/orders/{order_number}`, `/invoices/{n}`,
+  `/products/{code}`, `/carts/{id}`), optimalizace přepsala na
+  `{"orders": [], "current_page_items": 0}` — model tedy na dotaz po konkrétní
+  objednávce dostal „nic tu není". Nerozpoznaný tvar teď projde beze změny.
+- **`mcp_note` hlásil oříznutí, které se nestalo, a radil nefunkční postup.**
+  Poznámka tvrdila „Zobrazeno prvních 15 z None položek" tam, kde upstream
+  `current_page_items` neposlal, a „prvních 15 z 3" tam, kde se neořezávalo
+  vůbec. Hlavně ale u skutečného oříznutí radila „použij parametr page" —
+  jenže ořezává se **uvnitř** jedné upstream stránky, takže položky 16..N
+  z téže stránky `page=2` nevrátí (přeskočí na následující upstream stránku).
+  Poznámka teď říká, kolik položek je nedostupných, a doporučuje zúžit filtry;
+  další stránku nabízí jen tehdy, když `current_page < number_of_pages`.
+  Přibyl strojově čitelný příznak `mcp_truncated`. Neslovníková položka se
+  propouští beze změny místo tichého zahození.
+- **`list_customers` nikdy neukázal e-mail.** E-mail zákazníka je v Upgates v2
+  přihlašovací údaj (`login.email`), optimalizace ho četla jen z kořene objektu
+  a vracela `None`. Čte se teď z obou úrovní.
+- **Produkt nikdy neměl cenu.** Optimalizace četla `price_with_vat`,
+  `price_without_vat` a `currency` — pole, která ve schématu Upgates v2 vůbec
+  nejsou, takže vycházela vždy `None`. Nahrazena skutečnými poli: z `prices[]`
+  se vrací `language`, `price_common`, `price_purchase`, `vat` a
+  `recycling_fee`, z `prices[].pricelists[]` pak `name` (jako `pricelist_name`),
+  `price_original`, `product_discount` a `price_sale`. Žádné dopočítávané
+  ani vymyšlené hodnoty.
+- **Test spojení hlásil špatnou příčinu.** Všechny 4xx padaly do jedné hlášky
+  „Neplatný API login nebo klíč". Nově: 400/401 → `credential_invalid`,
+  403 → `provider_permission_denied`, 301/404/410 → `instance_unknown`
+  s hláškou podle stavu (301 přesunutý e-shop nebo změněná adresa API,
+  404/410 neznámý či zrušený e-shop), 429 → `rate_limited`, 5xx a síť →
+  `upstream_unavailable`. Nedostupné nebo vadné údaje v kontextu (chybějící
+  klíč, neplatná `api_url`) hlásí `credential_invalid` místo `invalid_input` —
+  ten se v public safe-test větvi normalizéru překlápí na
+  `runtime_unavailable` a příčina by se uživateli ztratila.
+- **403 radilo uživateli špatný krok.** Hláška tvrdila, že klíč nemá oprávnění
+  ke čtení. `/status` je ale podle dokumentace povolený každému API uživateli,
+  takže 403 na něm znamená neaktivního nebo po pěti neúspěšných pokusech
+  dočasně zablokovaného API uživatele. Rada teď zní zkontrolovat v administraci
+  (Doplňky → API), že je uživatel aktivní, a po lockoutu ověřit login i klíč.
+- **Test spojení se nevešel do rozpočtu platformy.** Běžel s výchozími čtyřmi
+  pokusy a 30s timeoutem, takže při pomalém upstreamu přestřelil tvrdý strop
+  12 s a uživatel místo příčiny dostal timeout řídicí roviny. Staví se teď
+  stejnou `_client()` továrnou jako nástroje, jen s vlastní politikou: jeden
+  pokus (`NO_RETRY`), 8 s celkem, 3 s na spojení.
+- **Rate limit se opakoval proti sobě.** Běžná volání používala výchozí
+  `READ_RETRY`, které opakuje i 429 — u tvrdého limitu Upgates to limit jen
+  dál pálilo. Nově `SERVER_ERRORS_ONLY`: opakují se jen 5xx, 429 jde ven jako
+  `rate_limited`.
+
+### Změněné
+
+- **PII tokeny se odvozují od vlastníka credentials, ne od volajícího.**
+  Data tenant je e-shop, ke kterému patří `api_key`, a ten může vlastnit tým:
+  odvození z `principal.sub` dávalo každému členovi jiný token pro téhož
+  zákazníka. Nově se použije `credential_owner_id` (bez prefixu podle druhu
+  vlastníka) s fallbackem na `sub`. Uživatelsky vlastněné připojení má dle
+  kontraktu SDK `credential_owner_id == sub`, takže **jeho tokeny se nemění
+  ani o bit** — golden test zůstává v platnosti.
+
 ## [Unreleased]
 
 ### Opravené

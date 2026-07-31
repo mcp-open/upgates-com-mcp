@@ -103,9 +103,20 @@ def optimize_product(product: dict[str, Any]) -> dict[str, Any]:
         "manufacturer": product.get("manufacturer"),
         "title": desc.get("title"),
         "url": desc.get("url"),
-        "price_with_vat": pricelist0.get("price_with_vat"),
-        "price_without_vat": pricelist0.get("price_without_vat"),
-        "currency": price0.get("currency"),
+        # Cenová pole jsou přesně ta, která Upgates API v2 v `prices[]`
+        # a `prices[].pricelists[]` opravdu vrací. Původní port (věrný TS
+        # originálu) četl `price_with_vat`/`price_without_vat`/`currency` —
+        # ta ve schématu vůbec nejsou, takže cena produktu vycházela vždy
+        # `None`. Nevymýšlet dopočty: `vat` je sazba, ne částka.
+        "language": price0.get("language"),
+        "price_common": price0.get("price_common"),
+        "price_purchase": price0.get("price_purchase"),
+        "vat": price0.get("vat"),
+        "recycling_fee": price0.get("recycling_fee"),
+        "pricelist_name": pricelist0.get("name"),
+        "price_original": pricelist0.get("price_original"),
+        "product_discount": pricelist0.get("product_discount"),
+        "price_sale": pricelist0.get("price_sale"),
         "main_category": main_category,
         "variants_count": len(variants) if isinstance(variants, list) else 0,
     }
@@ -115,15 +126,24 @@ def optimize_customer(customer: dict[str, Any]) -> dict[str, Any]:
     customer = customer or {}
     company = customer.get("company")
     login = customer.get("login") or {}
+    if not isinstance(login, dict):
+        login = {}
+    # E-mail zákazníka je v Upgates v2 přihlašovací údaj a leží v `login`, ne
+    # v kořeni objektu — původní port ho četl jen z kořene a vracel `None`
+    # u každého zákazníka. `login.active_yn`/`login.blocked_yn` už se ze
+    # správné úrovně četly, jen e-mail zůstal. Fallback drží obě varianty.
+    email = customer.get("email")
+    if email is None:
+        email = login.get("email")
     return {
         "customer_id": customer.get("customer_id"),
-        "email": customer.get("email"),
+        "email": email,
         "type": customer.get("type"),
         "firstname": customer.get("firstname"),
         "surname": customer.get("surname"),
         "company": company.get("name") if isinstance(company, dict) else None,
-        "active_yn": login.get("active_yn") if isinstance(login, dict) else None,
-        "blocked_yn": login.get("blocked_yn") if isinstance(login, dict) else None,
+        "active_yn": login.get("active_yn"),
+        "blocked_yn": login.get("blocked_yn"),
         "language": customer.get("language"),
         "pricelist": customer.get("pricelist"),
         "turnover": customer.get("turnover"),
@@ -246,6 +266,26 @@ def optimize_list_response(
 
     Pro jednoduché entity (order_statuses, labels, availabilities, …) vrací data
     beze změny — jsou malá a už optimalizovaná (stejné chování jako TS default).
+
+    Tři pravidla, která platí bez ohledu na tvar odpovědi upstreamu:
+
+    1. **Nic se nezahodí potichu.** Payload, který není stránka seznamu (detail
+       jednoho záznamu z `/orders/{order_number}`, `/invoices/{n}`,
+       `/products/{code}`, `/carts/{id}`, chybová obálka, …), se vrací beze
+       změny. Původní implementace z něj udělala prázdnou stránku
+       `{list_key: [], current_page_items: 0}` — model tedy na dotaz po
+       konkrétní objednávce dostal „nic tu není" místo dat.
+    2. **`mcp_note` mluví pravdu.** Hlásí se jen skutečně provedené oříznutí
+       a jen počty, které konektor opravdu viděl. Dřív se hlásilo „Zobrazeno
+       prvních 15 z None položek" i tam, kde upstream `current_page_items`
+       neposlal, a „Zobrazeno prvních 15 z 3" tam, kde se neořezávalo vůbec.
+    3. **Oříznuté položky `page` nevrátí.** Ořezává se až *uvnitř* jedné
+       upstream stránky, takže položky 16..N z téže stránky nejsou na žádné
+       další stránce — `page=2` vrátí až následující upstream stránku a ty
+       přeskočené zůstanou nedostupné. Původní hláška „Pro zobrazení dalších
+       použij parametr page" tedy modelu radila postup, který data nezíská;
+       jediná funkční cesta je zúžit filtry. Strojově čitelný příznak je
+       `mcp_truncated`.
     """
     if not data:
         return data
@@ -254,20 +294,42 @@ def optimize_list_response(
         return data
 
     list_key, optimizer = mapping
-    items = data.get(list_key) or []
-    if not isinstance(items, list):
-        items = []
-    optimized_items = [optimizer(item) for item in items[:max_items] if isinstance(item, dict)]
+    raw_items = data.get(list_key)
+    if not isinstance(raw_items, list):
+        return data
 
-    return {
-        "current_page": data.get("current_page"),
-        "number_of_pages": data.get("number_of_pages"),
+    page_items = raw_items[:max_items]
+    # Neslovníková položka se propustí beze změny — optimalizovat ji nejde, ale
+    # zahodit ji (a snížit o ni hlášený počet) by byla tichá ztráta dat.
+    optimized_items = [
+        optimizer(item) if isinstance(item, dict) else item for item in page_items
+    ]
+    truncated = len(raw_items) - len(page_items)
+
+    current_page = data.get("current_page")
+    number_of_pages = data.get("number_of_pages")
+    result: dict[str, Any] = {
+        "current_page": current_page,
+        "number_of_pages": number_of_pages,
         "number_of_items": data.get("number_of_items"),
         "mcp_limited_to": max_items,
-        "mcp_note": (
-            f"Zobrazeno prvních {max_items} z {data.get('current_page_items')} položek na "
-            "této stránce. Pro zobrazení dalších použij parametr page."
-        ),
+        "mcp_truncated": bool(truncated),
         list_key: optimized_items,
         "current_page_items": len(optimized_items),
     }
+    if truncated:
+        result["mcp_note"] = (
+            f"Zobrazeno prvních {len(optimized_items)} z {len(raw_items)} položek "
+            f"této stránky; {truncated} vynechaných položek z TÉTO stránky už "
+            "nezískáš — parametr page přeskočí na další upstream stránku, ne na "
+            "zbytek téhle. Pokud je potřebuješ, zužuj filtry (datum, stav, kód, "
+            "jazyk), ne stránkování."
+        )
+    else:
+        note = f"Zobrazeno všech {len(optimized_items)} položek této stránky (nic nebylo oříznuto)."
+        if isinstance(current_page, int) and isinstance(number_of_pages, int) and (
+            current_page < number_of_pages
+        ):
+            note += f" Další stránku ({current_page + 1} z {number_of_pages}) získáš parametrem page."
+        result["mcp_note"] = note
+    return result

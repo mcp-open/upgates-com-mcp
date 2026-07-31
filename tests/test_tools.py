@@ -49,7 +49,23 @@ def test_client_built_from_context(monkeypatch):
     monkeypatch.setattr(server, "UpstreamClient", lambda **kw: captured.update(kw) or _Fake())
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
         server.get_api_status()
-    assert captured == {"base_url": _CFG["api_url"], "auth": ("u", "k")}
+    assert captured["base_url"] == _CFG["api_url"]
+    assert captured["auth"] == ("u", "k")
+
+
+def test_regular_tools_do_not_retry_rate_limits(monkeypatch):
+    """Upgates má tvrdý rate limit — opakovat 429 uvnitř volání ho jen pálí.
+
+    `SERVER_ERRORS_ONLY` opakuje jen 5xx; 429 jde ven jako `RATE_LIMITED`,
+    ať se rozhodne volající.
+    """
+    captured = {}
+    monkeypatch.setattr(server, "UpstreamClient", lambda **kw: captured.update(kw) or _Fake())
+    with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
+        server.get_api_status()
+    assert 429 not in captured["retry"].retry_statuses
+    assert captured["retry"].retry_statuses == frozenset({500, 502, 503, 504})
+    assert captured["retry"].max_attempts > 1  # 5xx se opakovat mají
 
 
 @pytest.mark.parametrize(
@@ -106,10 +122,8 @@ def test_client_normalizes_allowed_upgates_url_before_attaching_basic_auth(monke
         sub="s1",
     ):
         server._client()
-    assert captured == {
-        "base_url": "https://acme.admin.server.upgates.com:443/api/v2",
-        "auth": ("u", "k"),
-    }
+    assert captured["base_url"] == "https://acme.admin.server.upgates.com:443/api/v2"
+    assert captured["auth"] == ("u", "k")
 
 
 def test_list_orders_optimizes_and_anonymizes(monkeypatch):
@@ -256,6 +270,63 @@ def test_list_products_not_anonymized_and_optimized(monkeypatch):
     assert prod["title"] == "Boty"
 
 
+def test_list_products_simple_with_code_uses_the_detail_endpoint(monkeypatch):
+    """`code` je singulární detail lookup → `GET /products/{code}/simple`.
+
+    Detail má podle dokumentace jediný parametr — `code` v cestě. Kolekční
+    filtry jsou dokumentované jen pro `GET /products/simple`, takže na detail
+    nesmí odejít žádná query (ani duplicitní `code`).
+    """
+    fake = _patch(monkeypatch, {"products": []})
+    with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
+        server.list_products_simple(code="P-1")
+    path, params = fake.calls[0]
+    assert path == "/products/P-1/simple"
+    assert params is None
+
+
+def test_list_products_simple_detail_ignores_collection_filters(monkeypatch):
+    """I když model kolekční filtry pošle, na detail se nepřipojí."""
+    fake = _patch(monkeypatch, {"products": []})
+    with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
+        server.list_products_simple(
+            code="P-1", product_id=9, active_yn=True, in_stock_yn=False, page=3
+        )
+    path, params = fake.calls[0]
+    assert path == "/products/P-1/simple"
+    assert params is None
+
+
+def test_list_products_simple_without_code_uses_the_collection_endpoint(monkeypatch):
+    fake = _patch(monkeypatch, {"products": []})
+    with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
+        server.list_products_simple()
+    path, params = fake.calls[0]
+    assert path == "/products/simple"
+    assert "code" not in params
+
+
+def test_list_products_simple_encodes_the_code_segment(monkeypatch):
+    """Detail cesta nese LLM-dodaný kód — nesmí z ní jít vyskočit jinam."""
+    fake = _patch(monkeypatch, {"products": []})
+    with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
+        server.list_products_simple(code="A/../secret")
+    path, _ = fake.calls[0]
+    assert path.startswith("/products/")
+    assert path.endswith("/simple")
+    assert "/secret" not in path
+    assert "%2F" in path
+
+
+def test_list_orders_detail_response_is_not_emptied(monkeypatch):
+    """Detail objednávky projde ven celý, ne jako prázdná stránka."""
+    _patch(monkeypatch, {"order_number": "ORD-1", "order_total": 999})
+    with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
+        out = server.list_orders(order_number="ORD-1")
+    assert out["order_number"] == "ORD-1"
+    assert out["order_total"] == 999
+
+
 def test_list_carts_defaults_to_last_7_days(monkeypatch):
     fake = _patch(monkeypatch, {"carts": []})
     with testing.with_context({"api_key": "k"}, _CFG, sub="s1"):
@@ -312,6 +383,19 @@ def test_tool_inventory_all_read_only():
     assert len(tools) == 23
     for name, tool in tools.items():
         assert tool.annotations.readOnlyHint is True, name
+
+
+def test_instructions_do_not_promise_page_recovers_truncated_items():
+    """Instrukce serveru nesmí odporovat tomu, co optimalizace opravdu dělá.
+
+    Ořezává se uvnitř jedné upstream stránky, takže `page` vynechané položky
+    nevrátí. Instrukce dřív tvrdily „víc získáš parametrem page".
+    """
+    instructions = server.mcp.instructions
+    assert "víc získáš parametrem page" not in instructions
+    assert "mcp_truncated" in instructions
+    assert "zužuj filtry" in instructions
+    assert "number_of_pages" in instructions
 
 
 def test_no_write_or_delete_tools_registered():

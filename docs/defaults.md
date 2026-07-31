@@ -42,7 +42,7 @@ list_orders({ page: 2, order_dir: 'asc' })
 - `variants_yn: false` - Bez variant (šetří tokeny)
 
 **Výsledek:**
-- Bez parametrů vrátí max 50 aktivních produktů
+- Bez parametrů vrátí aktivní produkty (strop `MAX_ITEMS_FOR_MCP = 15`)
 - Neaktivní a archivované produkty jsou automaticky vyfiltrované
 - Varianty se nezahrnují (ušetří tokeny)
 
@@ -50,7 +50,7 @@ list_orders({ page: 2, order_dir: 'asc' })
 ```text
 // Bez parametrů - jen aktivní produkty
 list_products({})
-// Vrátí: 50 aktivních produktů bez variant
+// Vrátí: max 15 aktivních produktů bez variant
 
 // Pokud chcete i neaktivní
 list_products({ active_yn: false })

@@ -64,5 +64,28 @@ konektor ztratil smysl.
 
 ## Limity
 
-Odpovědi jsou oříznuté, aby se nezaplnilo kontextové okno modelu — viz
-[`defaults.md`](defaults.md). Oříznutí se vždy ohlásí, nikdy se nestane tiše.
+Aby se nezaplnilo kontextové okno modelu, konektor ořezává výpisy na strop
+`MAX_ITEMS_FOR_MCP` — viz [`defaults.md`](defaults.md). Týká se to **jen
+optimalizovaných entit**:
+
+| Nástroj | |
+|---|---|
+| `list_orders`, `list_invoices` | objednávky a faktury |
+| `list_products`, `list_categories` | produkty a kategorie |
+| `list_customers`, `list_carts` | zákazníci a košíky |
+| `list_shipments`, `list_payments` | doprava a platby |
+
+Ostatní nástroje (`list_products_simple`, `list_order_statuses`, `list_labels`,
+`list_availabilities`, `list_manufacturers`, `list_parameters`,
+`list_vouchers`, `list_webhooks`, `list_webhook_events`, `list_pricelists`,
+`get_*`) vracejí odpověď tak, jak přišla — neořezávají se a pole
+`mcp_truncated`/`mcp_note` v jejich odpovědi nejsou.
+
+U optimalizovaných entit se oříznutí vždy ohlásí, nikdy se nestane tiše:
+odpověď nese boolean `mcp_truncated` a slovní `mcp_note`.
+
+**Oříznuté položky `page` nevrátí.** Ořezává se až uvnitř jedné upstream
+stránky, takže položky nad strop `MAX_ITEMS_FOR_MCP` nejsou na žádné další
+stránce — `page` přeskočí na následující upstream stránku, ne na zbytek té
+současné. Když jsou potřeba, je jediná funkční cesta zúžit filtry (datum,
+stav, kód, jazyk). Odpověď to říká i modelu přímo v `mcp_note`.
