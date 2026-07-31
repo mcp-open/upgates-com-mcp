@@ -34,7 +34,13 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from openmcp_sdk import ConnectorError, ErrorCode, current_context
-from openmcp_sdk.http import UpstreamClient, encode_segment
+from openmcp_sdk.http import (
+    NO_RETRY,
+    SERVER_ERRORS_ONLY,
+    RetryPolicy,
+    UpstreamClient,
+    encode_segment,
+)
 from openmcp_sdk.pii import PiiPolicy, Pseudonymizer, derive_key
 
 from connector.optimizers import optimize_list_response
@@ -53,8 +59,17 @@ mcp: FastMCP = FastMCP(
         "ale reálné hodnoty nejsou dostupné a token nelze rozklíčovat zpět. "
         "K vyhledání záznamu použij číslo objednávky/faktury nebo kód, ne přímo "
         "e-mail/telefon. Katalogová data (produkty, kategorie, ceny) nejsou "
-        "pseudonymizována. Odpovědi jsou stránkované a zkrácené na prvních 15 "
-        "položek — víc získáš parametrem page."
+        "pseudonymizována.\n\n"
+        "Objednávky, faktury, produkty, zákazníky, kategorie, košíky, dopravu "
+        "a platby konektor zkracuje na prvních 15 položek stránky; ostatní "
+        "výpisy vrací tak, jak přišly. Zkrácené odpovědi poznáš podle polí "
+        "`mcp_truncated` a `mcp_note` — kde nejsou, nic se neořezávalo. "
+        "Pozor: **oříznuté položky parametrem `page` nezískáš** — ořezává se "
+        "uvnitř jedné stránky, takže `page` přeskočí na další stránku od "
+        "Upgates, ne na zbytek té současné. Když potřebuješ i vynechané "
+        "záznamy, zužuj filtry (datum, stav, kód, jazyk). `page` používej na "
+        "procházení dalších stránek, a to jen dokud je `current_page` menší "
+        "než `number_of_pages`."
     ),
 )
 
@@ -111,22 +126,55 @@ def _validated_api_url(raw: object) -> str:
     return f"https://{hostname}{f':{port}' if port is not None else ''}/api/v2"
 
 
-def _client() -> UpstreamClient:
+def _client(
+    *,
+    retry: RetryPolicy = SERVER_ERRORS_ONLY,
+    timeout: float = 30.0,
+    connect_timeout: float = 10.0,
+) -> UpstreamClient:
     """Upgates klient z aktuálního request kontextu (SDK identita + creds).
 
-    Retry (429/5xx), timeout a mapování HTTP stavů na `ConnectorError` dělá
-    sdílený `openmcp_sdk.http.UpstreamClient` — Upgates API nemá vlastní
-    zvláštnost oproti výchozí politice (HTTP Basic je `auth=(login, api_key)`).
+    Timeout a mapování HTTP stavů na `ConnectorError` dělá sdílený
+    `openmcp_sdk.http.UpstreamClient` (HTTP Basic je `auth=(login, api_key)`).
+
+    Retry je `SERVER_ERRORS_ONLY`, ne výchozí `READ_RETRY`: Upgates má tvrdý
+    rate limit a 429 znamená „ubereš, nebo tě odstřihnu". Opakovat ho uvnitř
+    jednoho volání nástroje limit jen dál vyčerpává — 429 patří ven jako
+    `RATE_LIMITED`, ať se rozhodne volající. Opakují se jen 5xx.
     """
     ctx = current_context()
     return UpstreamClient(
         base_url=_validated_api_url(ctx.config["api_url"]),
         auth=(ctx.config["api_login"], ctx.secrets["api_key"]),
+        retry=retry,
+        timeout=timeout,
+        connect_timeout=connect_timeout,
     )
 
 
+def _pii_scope() -> str:
+    """Rozsah izolace PII tokenů — vlastník credentials, ne volající.
+
+    Data tenant je Upgates e-shop, ke kterému patří `api_key` — a ten může
+    vlastnit tým, ne jednotlivec. Odvození z `principal.sub` dávalo každému
+    členovi týmu jiný token pro téhož zákazníka, takže se stejný záznam ve
+    dvou konverzacích nedal spárovat. `credential_owner_id` je proto přesnější
+    scope; `credential_owner_kind` se do klíče **nepromítá** (stejně jako
+    v raynetu), aby zůstal jednodílný a bit-kompatibilní.
+
+    Kontrakt SDK (`Principal.__post_init__`) drží pro `kind == "user"`
+    invariant `credential_owner_id == sub`, takže uživatelsky vlastněné
+    připojení dá přesně stejné tokeny jako dosud — golden test se nemění.
+    Prázdný nebo mezerový `credential_owner_id` (a `None` v stdio režimu)
+    padá zpět na `sub`; `derive_key` prázdnou část rozsahu odmítá.
+    """
+    principal = current_context().principal
+    owner = (principal.credential_owner_id or "").strip()
+    return owner or principal.sub
+
+
 def _pseudonymizer(policy: PiiPolicy = POLICY) -> Pseudonymizer:
-    return Pseudonymizer(derive_key(current_context().principal.sub), policy)
+    return Pseudonymizer(derive_key(_pii_scope()), policy)
 
 
 def _path_segment(value: int | str, label: str) -> str:
@@ -293,14 +341,30 @@ def list_products_simple(
     in_stock_yn: Annotated[bool | None, Field(description="Filtrovat podle skladové dostupnosti")] = None,
     page: Annotated[int, _D_PAGE] = 1,
 ) -> Any:
-    """Seznam produktů ve zjednodušeném formátu (max 50 položek na stránku)."""
+    """Produkty ve zjednodušeném formátu (jen základní pole, stránkované).
+
+    Velikost stránky si konektor nenastavuje — platí výchozí hodnota Upgates
+    pro tento endpoint. Odpověď se nijak neořezává ani neoptimalizuje, jde ven
+    tak, jak přišla.
+
+    Upgates API v2 má obě varianty: detail `GET /products/{code}/simple`
+    a kolekci `GET /products/simple` (ta filtruje parametrem `codes`).
+    `code` je tady singulární detail lookup, takže míří na detailní cestu —
+    segment se percent-enkóduje přes `_path_segment`.
+    """
     validate_page(page)
-    endpoint = f"/products/{_path_segment(code, 'code')}/simple" if code else "/products/simple"
+    if code:
+        # Detail má podle dokumentace jediný parametr, a to `code` v cestě.
+        # Ostatní filtry (`product_id`, `last_update_time_from`, `active_yn`,
+        # `in_stock_yn`, `page`) jsou dokumentované výhradně pro kolekční
+        # `GET /products/simple` — na detailu nemají význam a `code` v query
+        # by navíc jen duplikoval segment cesty.
+        return _get(f"/products/{_path_segment(code, 'code')}/simple")
     params = _query(
-        code=code, product_id=product_id, last_update_time_from=last_update_time_from,
+        product_id=product_id, last_update_time_from=last_update_time_from,
         active_yn=active_yn, in_stock_yn=in_stock_yn, page=page,
     )
-    return _get(endpoint, params)
+    return _get("/products/simple", params)
 
 
 # =============================================================================
@@ -525,35 +589,94 @@ def test_connection() -> str:
     `_client()` samotný smí spadnout (`ConnectorError` z neplatné URL, `KeyError`
     z chybějícího pole v kontextu) dřív, než stihne cokoliv zavolat — bez
     vlastního try/except by taková chyba unikla jako 500. Klasifikace chyby
-    z `client.get_json()` je strukturovaná přes `ConnectorError.status`.
-    `/status` je fixní endpoint bez argumentů, takže každá 4xx na něj mluví
-    o údajích připojení: 401/403 neplatný login nebo klíč, 400 vadný tvar,
-    404/410 e-shop na dané `api_url` neexistuje (typicky překlep v subdoméně
-    nebo zrušený účet). Všechno to jsou trvalé stavy → INVALID_INPUT, ze
-    kterého platforma udělá `credential_invalid`. Jen skutečně dočasné
-    problémy (timeout, 5xx, rate limit) → UPSTREAM_UNAVAILABLE. Zprávě se
-    záměrně nepředává syrový `str(exc)` (může nést vendor tělo).
+    z `client.get_json()` je strukturovaná přes `ConnectorError.status`;
+    `/status` je fixní endpoint bez argumentů, takže 4xx na něj nikdy nemluví
+    o argumentech nástroje, vždy o údajích připojení.
+
+    Kódy jsou zvolené tak, aby prošly normalizérem řídicí roviny
+    (`api/internal/credentialversion/tester.go`) beze ztráty informace:
+
+    * **400/401** → `CREDENTIAL_INVALID` — login nebo klíč je špatně.
+    * **403** → `PROVIDER_PERMISSION_DENIED`. `/status` je podle dokumentace
+      povolený **každému** API uživateli, takže 403 na něm neznamená chybějící
+      právo na čtení — buď je API uživatel neaktivní, nebo ho Upgates dočasně
+      zablokoval po pěti neúspěšných pokusech o přihlášení. Rada tedy zní
+      aktivovat/odblokovat uživatele, ne přidávat mu oprávnění.
+    * **301/404/410** → `INSTANCE_UNKNOWN` — problém je v `api_url`, ne v klíči.
+      Hláška se liší podle stavu: 301 znamená přesunutý e-shop nebo změněnou
+      adresu API, 404/410 neznámý nebo zrušený e-shop.
+    * **429** → `RATE_LIMITED` (`provider_rate_limited`), **5xx a síť** →
+      `UPSTREAM_UNAVAILABLE` (`provider_unavailable`) — obojí dočasné.
+
+    Klient se staví stejným `_client()` jako nástroje (tatáž validace URL
+    i credentials), jen s přísnější politikou: **jeden pokus** (`NO_RETRY`)
+    a kratší timeouty (8 s celkem, 3 s connect). Platforma má na test tvrdý
+    strop 12 s — s běžným retry a 30s timeoutem by ho konektor přestřelil
+    a uživatel by místo příčiny dostal timeout řídicí roviny.
+
+    Zprávě se záměrně nepředává syrový `str(exc)` (může nést vendor tělo).
     """
     try:
-        client = _client()
+        client = _client(retry=NO_RETRY, timeout=8.0, connect_timeout=3.0)
     except (ConnectorError, KeyError) as exc:
-        raise ConnectorError(ErrorCode.INVALID_INPUT, "Neplatné údaje připojení") from exc
+        # `CREDENTIAL_INVALID`, ne `INVALID_INPUT`: sem se spadne jen když je
+        # `api_url` vadná nebo `api_key`/`api_login` v kontextu chybí — to je
+        # z definice problém přihlašovacích údajů. Navíc `CREDENTIAL_INVALID`
+        # projde normalizérem řídicí roviny stejně v obou větvích, kdežto
+        # `INVALID_INPUT` se v public safe-test větvi překlápí na
+        # `runtime_unavailable` a příčina by se uživateli ztratila.
+        raise ConnectorError(
+            ErrorCode.CREDENTIAL_INVALID,
+            "Údaje připojení jsou neúplné nebo mají špatný tvar — zkontroluj "
+            "URL API, login i klíč.",
+        ) from exc
 
     try:
         client.get_json("/status")
     except ConnectorError as exc:
-        if exc.status in (400, 401, 403, 404, 410):
-            raise ConnectorError(
-                ErrorCode.INVALID_INPUT, "Neplatný API login nebo klíč"
-            ) from exc
-        raise ConnectorError(
-            ErrorCode.UPSTREAM_UNAVAILABLE,
-            "Nepodařilo se spojit s Upgates — zkus to prosím znovu.",
-        ) from exc
+        raise _classify_test_failure(exc) from exc
     finally:
         client.close()
 
     return f"Připojeno k e-shopu {current_context().config['api_url']}"
+
+
+def _classify_test_failure(exc: ConnectorError) -> ConnectorError:
+    """Namapuj selhání `/status` na kód, kterému platforma rozumí."""
+    if exc.status in (400, 401):
+        return ConnectorError(
+            ErrorCode.CREDENTIAL_INVALID, "Neplatný API login nebo klíč"
+        )
+    if exc.status == 403:
+        return ConnectorError(
+            ErrorCode.PROVIDER_PERMISSION_DENIED,
+            "Upgates odmítl API uživatele. Zkontroluj v administraci "
+            "(Doplňky → API), že je uživatel aktivní; po pěti neúspěšných "
+            "pokusech ho Upgates dočasně blokuje — pak ověř login i klíč "
+            "a zkus to znovu.",
+        )
+    if exc.status == 301:
+        return ConnectorError(
+            ErrorCode.INSTANCE_UNKNOWN,
+            "E-shop se přesunul jinam nebo se změnila adresa API — načti "
+            "aktuální URL v Upgates → Doplňky → API a ulož ji do připojení.",
+        )
+    if exc.status in (404, 410):
+        return ConnectorError(
+            ErrorCode.INSTANCE_UNKNOWN,
+            "E-shop na zadané URL API neexistuje nebo byl zrušen — zkontroluj "
+            "adresu <eshop>.admin.<server>.upgates.com/api/v2.",
+        )
+    if exc.status == 429:
+        return ConnectorError(
+            ErrorCode.RATE_LIMITED,
+            "Upgates dočasně odmítá požadavky kvůli limitu — zkus to prosím "
+            "za chvíli znovu.",
+        )
+    return ConnectorError(
+        ErrorCode.UPSTREAM_UNAVAILABLE,
+        "Nepodařilo se spojit s Upgates — zkus to prosím znovu.",
+    )
 
 
 # =============================================================================

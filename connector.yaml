@@ -1,6 +1,6 @@
 slug: upgates
 name: Upgates
-version: 0.2.0
+version: 0.2.1
 category: ecommerce
 summary: >
   Čtecí přístup k Upgates e-shop API (v2) — objednávky, faktury, produkty,
@@ -8,7 +8,11 @@ summary: >
   Zákaznická osobní data (e-maily, telefony, jména, adresy, IČO/DIČ,
   bankovní spojení) jsou před odpovědí pseudonymizována na stabilní tokeny
   typu <EMAIL_3f9c1a2b4d5e>, takže do LLM neproteče PII (GDPR).
-sdk_min_version: 0.4.2
+# 0.4.3: `display.locales.*.fields[].hint` (lokalizovaná nápověda k poli) —
+# starší SDK manifest se `hint` odmítne jako extra_forbidden a konektor
+# nenaběhne. Zároveň je to první verze, která nepustí URL s query parametry
+# (a tedy zákaznickým e-mailem/telefonem) do INFO logu httpx.
+sdk_min_version: 0.4.3
 
 credentials:
   - key: api_url
@@ -16,19 +20,19 @@ credentials:
     type: string
     secret: false
     required: true
-    hint: "Přesná URL z administrace Upgates, např. https://vas-eshop.admin.s17.upgates.com/api/v2"
+    hint: "Přesná URL z administrace Upgates (Doplňky → API), např. https://vas-eshop.admin.s17.upgates.com/api/v2"
   - key: api_login
     label: API login
     type: string
     secret: false
     required: true
-    hint: "Přihlašovací jméno API klíče (Upgates → Nastavení → API)"
+    hint: "Přihlašovací jméno API klíče (Upgates → Doplňky → API)"
   - key: api_key
     label: API klíč
     type: string
     secret: true
     required: true
-    hint: "API klíč (heslo) k Upgates API — Upgates → Nastavení → API"
+    hint: "API klíč (heslo) k Upgates API — Upgates → Doplňky → API"
 
 operator_config: []
 
@@ -110,9 +114,9 @@ display:
       data_handling: "Osobní údaje zákazníků a provozovatele se vždy před odesláním do AI klienta pseudonymizují stabilními jednosměrnými tokeny. Katalogová data zůstávají čitelná."
       example_query: "Ukaž posledních 10 objednávek, jejich stav a celkovou hodnotu."
       fields:
-        - { key: api_url, label: "URL Upgates API v2", hint: "Přesná URL z administrace Upgates, např. https://vas-eshop.admin.s17.upgates.com/api/v2" }
-        - { key: api_login, label: "API login", hint: "Přihlašovací jméno API klíče (Upgates → Nastavení → API)" }
-        - { key: api_key, label: "API klíč", hint: "API klíč (heslo) k Upgates API — Upgates → Nastavení → API" }
+        - { key: api_url, label: "URL Upgates API v2", hint: "Přesná URL z administrace Upgates (Doplňky → API), např. https://vas-eshop.admin.s17.upgates.com/api/v2" }
+        - { key: api_login, label: "API login", hint: "Přihlašovací jméno API klíče (Upgates → Doplňky → API)" }
+        - { key: api_key, label: "API klíč", hint: "API klíč (heslo) k Upgates API — Upgates → Doplňky → API" }
       tools:
         - { name: list_orders, description: "Objednávky s filtry a pseudonymizovanými zákaznickými údaji" }
         - { name: get_order_history, description: "Historie objednávky s chráněnými uživateli a hodnotami změn" }
@@ -152,9 +156,9 @@ display:
       data_handling: "Osobné údaje zákazníkov a prevádzkovateľa sa vždy pred odoslaním do AI klienta pseudonymizujú stabilnými jednosmernými tokenmi. Katalógové údaje zostávajú čitateľné."
       example_query: "Ukáž posledných 10 objednávok, ich stav a celkovú hodnotu."
       fields:
-        - { key: api_url, label: "URL Upgates API v2", hint: "Presná URL z administrácie Upgates, napr. https://vas-eshop.admin.s17.upgates.com/api/v2" }
-        - { key: api_login, label: "API prihlasovacie meno", hint: "Prihlasovacie meno API kľúča (Upgates → Nastavenia → API)" }
-        - { key: api_key, label: "API kľúč", hint: "API kľúč (heslo) k Upgates API — Upgates → Nastavenia → API" }
+        - { key: api_url, label: "URL Upgates API v2", hint: "Presná URL z administrácie Upgates (Doplnky → API), napr. https://vas-eshop.admin.s17.upgates.com/api/v2" }
+        - { key: api_login, label: "API prihlasovacie meno", hint: "Prihlasovacie meno API kľúča (Upgates → Doplnky → API)" }
+        - { key: api_key, label: "API kľúč", hint: "API kľúč (heslo) k Upgates API — Upgates → Doplnky → API" }
       tools:
         - { name: list_orders, description: "Objednávky s filtrami a pseudonymizovanými zákazníckymi údajmi" }
         - { name: get_order_history, description: "História objednávky s chránenými používateľmi a hodnotami zmien" }
